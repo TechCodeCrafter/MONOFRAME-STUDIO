@@ -12,6 +12,7 @@ Cinematic AI video studio – auto-detects the best moments, generates edits, an
 ## 🎥 Why MonoFrame?
 
 Creators spend hours editing their videos. MonoFrame uses AI to:
+
 - Detect emotional peaks
 - Score excitement
 - Auto-cut scenes

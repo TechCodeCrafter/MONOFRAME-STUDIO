@@ -3,8 +3,12 @@ MonoFrame Studio API
 FastAPI backend for cinematic AI video editing
 """
 
-from fastapi import FastAPI
+from datetime import datetime
+from typing import Optional
+
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, EmailStr
 
 app = FastAPI(
     title="MonoFrame Studio API",
@@ -15,11 +19,27 @@ app = FastAPI(
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["http://localhost:3000", "http://localhost:3001"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# Models
+class EmailSignup(BaseModel):
+    email: EmailStr
+    source: Optional[str] = "landing_page"
+
+
+class EmailSignupResponse(BaseModel):
+    success: bool
+    message: str
+    email: str
+
+
+# In-memory storage (replace with database in production)
+email_signups = []
 
 
 @app.get("/")
@@ -36,6 +56,37 @@ async def root():
 async def health():
     """Health check endpoint"""
     return {"status": "ok"}
+
+
+@app.post("/api/waitlist", response_model=EmailSignupResponse)
+async def join_waitlist(signup: EmailSignup):
+    """
+    Add email to waitlist for early access
+    """
+    # Check if email already exists
+    if any(entry["email"] == signup.email for entry in email_signups):
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    # Store email (in production, save to database)
+    email_signups.append(
+        {
+            "email": signup.email,
+            "source": signup.source,
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+    )
+
+    return EmailSignupResponse(
+        success=True,
+        message="Successfully joined the waitlist!",
+        email=signup.email,
+    )
+
+
+@app.get("/api/waitlist/count")
+async def waitlist_count():
+    """Get total number of waitlist signups"""
+    return {"count": len(email_signups), "status": "ok"}
 
 
 if __name__ == "__main__":

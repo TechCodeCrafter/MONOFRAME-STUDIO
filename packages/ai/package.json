@@ -1,0 +1,16 @@
+{
+  "name": "@monoframe/ai",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI processing package for video analysis and editing",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "lint": "eslint src"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}

@@ -23,9 +23,10 @@ const config: Config = {
       },
       animation: {
         'fade-in': 'fadeIn 1s ease-in',
-        'fade-up': 'fadeUp 1s ease-out',
+        'fade-up': 'fadeUp 0.8s ease-out',
+        'fade-up-delay': 'fadeUp 0.8s ease-out 0.2s forwards',
         'slide-in': 'slideIn 0.8s ease-out',
-        'breathe': 'breathe 4s ease-in-out infinite',
+        breathe: 'breathe 4s ease-in-out infinite',
         'pulse-slow': 'pulse 3s ease-in-out infinite',
       },
       keyframes: {

@@ -7,6 +7,10 @@
   --font-montserrat: 'Montserrat', sans-serif;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   font-family: var(--font-inter);
   color: #ffffff;
@@ -44,10 +48,62 @@ body {
 
 @layer components {
   .btn-primary {
-    @apply bg-mono-white text-mono-black font-montserrat font-semibold px-8 py-4 rounded-none hover:bg-mono-silver transition-all duration-300;
+    @apply bg-mono-white text-mono-black font-montserrat font-semibold px-8 py-4 rounded-none hover:bg-mono-silver hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300;
   }
 
   .btn-secondary {
-    @apply border-2 border-mono-white text-mono-white font-montserrat font-semibold px-8 py-4 rounded-none hover:bg-mono-white hover:text-mono-black transition-all duration-300;
+    @apply border-2 border-mono-white text-mono-white font-montserrat font-semibold px-8 py-4 rounded-none hover:bg-mono-white hover:text-mono-black hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300;
+  }
+
+  .card-hover {
+    @apply transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 hover:border-mono-white;
+  }
+
+  .fade-in-scroll {
+    opacity: 0;
+    animation: fadeInScroll 0.8s ease-out forwards;
+  }
+
+  @keyframes fadeInScroll {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Subtle button pulse */
+  .btn-pulse {
+    animation: gentlePulse 3s ease-in-out infinite;
+  }
+
+  @keyframes gentlePulse {
+    0%,
+    100% {
+      transform: scale(1);
+      box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+    }
+    50% {
+      transform: scale(1.01);
+      box-shadow: 0 0 20px 0 rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  /* Film grain overlay for entire page */
+  .film-grain {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    opacity: 0.02;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    z-index: 9999;
   }
 }

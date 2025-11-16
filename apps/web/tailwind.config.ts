@@ -26,6 +26,7 @@ const config: Config = {
         'fade-up': 'fadeUp 1s ease-out',
         'slide-in': 'slideIn 0.8s ease-out',
         'breathe': 'breathe 4s ease-in-out infinite',
+        'pulse-slow': 'pulse 3s ease-in-out infinite',
       },
       keyframes: {
         fadeIn: {

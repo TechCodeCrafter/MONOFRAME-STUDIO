@@ -263,19 +263,19 @@ export default function UploadPage() {
 
                     {/* Continue Button */}
                     <div className="mt-8 text-center animate-fade-up animation-delay-600">
-                        <button
-                            disabled={!file}
+                        <Link
+                            href={file ? '/processing' : '#'}
                             className={`
-                font-montserrat font-semibold text-lg px-12 py-4 rounded
+                inline-block font-montserrat font-semibold text-lg px-12 py-4 rounded
                 transition-all duration-300
                 ${file
                                     ? 'bg-mono-white text-mono-black hover:bg-mono-silver cursor-pointer'
-                                    : 'bg-mono-slate text-mono-silver cursor-not-allowed'
+                                    : 'bg-mono-slate text-mono-silver cursor-not-allowed pointer-events-none'
                                 }
               `}
                         >
                             Continue to Processing
-                        </button>
+                        </Link>
                     </div>
                 </div>
             </div>

@@ -48,9 +48,9 @@ export default function Home() {
         <div className="absolute inset-0 bg-gradient-to-b from-mono-shadow via-mono-black to-mono-slate opacity-50" />
 
         <div className="container mx-auto max-w-6xl relative z-10">
-          <div className="text-center space-y-8 animate-fade-up">
-            {/* Logo/Brand Mark */}
-            <div className="inline-block mb-4">
+          <div className="text-center space-y-6 animate-fade-up">
+            {/* Logo */}
+            <div className="inline-block mb-2">
               <svg
                 className="w-16 h-16 mx-auto"
                 viewBox="0 0 64 64"
@@ -64,26 +64,34 @@ export default function Home() {
               </svg>
             </div>
 
+            {/* Brand Name */}
+            <h2 className="font-montserrat font-bold text-3xl md:text-4xl tracking-tight">
+              MONOFRAME
+            </h2>
+
+            {/* Director Whisper Line */}
+            <p className="font-montserrat text-mono-silver text-sm md:text-base tracking-widest uppercase opacity-90 mt-2">
+              AI That Edits Like a Film Director
+            </p>
+
             {/* Cinematic glow behind headline */}
-            <div className="relative">
+            <div className="relative mt-6">
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="w-[800px] h-[300px] bg-mono-white/5 blur-[120px] rounded-full" />
               </div>
 
-              {/* Headline */}
-              <h1 className="relative font-montserrat font-bold text-6xl md:text-8xl lg:text-9xl tracking-tight leading-none">
-                MONOFRAME
+              {/* Big Cinematic Headline */}
+              <h1 className="relative font-montserrat font-bold text-5xl md:text-7xl lg:text-8xl leading-none">
+                The First AI Film Editor
               </h1>
             </div>
 
-            {/* Subheadline */}
-            <p className="font-montserrat font-semibold text-xl md:text-2xl lg:text-3xl text-mono-silver max-w-3xl mx-auto">
-              Cinematic AI Video Editing.
-              <br />
-              Precision. Speed. Excellence.
+            {/* Emotional Subheadline */}
+            <p className="font-montserrat font-semibold text-xl md:text-2xl text-mono-silver max-w-3xl mx-auto">
+              It edits your videos with taste, emotion, and cinematic timing.
             </p>
 
-            {/* Description */}
+            {/* Supporting Line */}
             <p className="font-inter text-base md:text-lg text-mono-silver max-w-2xl mx-auto leading-relaxed">
               Detect emotional peaks. Score excitement. Auto-cut scenes. Deliver cinematic edits
               instantly.

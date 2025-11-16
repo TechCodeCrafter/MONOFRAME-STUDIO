@@ -3,11 +3,15 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { getProjectById, deleteProject, type Project } from '@/lib/projectStore';
+import { exportClipsAsZip } from '@/lib/exporter';
+import { useExportOverlay } from '@/components/export';
 
 export default function ProjectDetailsPage() {
   const params = useParams();
   const router = useRouter();
   const projectId = params.projectId as string;
+
+  const { hideExportOverlay } = useExportOverlay();
 
   const [project, setProject] = useState<Project | null>(null);
   const [selectedClipIndex, setSelectedClipIndex] = useState(0);
@@ -112,6 +116,39 @@ export default function ProjectDetailsPage() {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handleExportAll = async () => {
+    if (!project || !project.clips || project.clips.length === 0) return;
+
+    try {
+      const clipsToExport = project.clips
+        .filter((clip) => clip.videoUrl || project.videoUrl)
+        .map((clip) => ({
+          videoUrl: (clip.videoUrl || project.videoUrl)!,
+          startTime: clip.startTime,
+          endTime: clip.endTime,
+          title: clip.title,
+        }));
+
+      if (clipsToExport.length === 0) {
+        alert('No clips with valid video URLs found');
+        return;
+      }
+
+      const sanitizedProjectTitle = project.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+      const zipFilename = `${sanitizedProjectTitle}_clips.zip`;
+
+      // Export overlay is handled by exporter.ts
+      await exportClipsAsZip(clipsToExport, zipFilename);
+
+      hideExportOverlay();
+      alert('All clips exported successfully!');
+    } catch (error) {
+      console.error('Export all clips failed:', error);
+      hideExportOverlay();
+      alert('Export failed. Please try again.');
+    }
   };
 
   const handleDelete = () => {
@@ -226,8 +263,11 @@ export default function ProjectDetailsPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <button className="px-4 py-2 border border-mono-white/30 text-mono-white font-montserrat text-sm rounded hover:bg-mono-white/5 transition-colors">
-              Export
+            <button
+              onClick={handleExportAll}
+              className="px-4 py-2 border border-mono-white/30 text-mono-white font-montserrat text-sm rounded hover:bg-mono-white/5 transition-colors flex items-center space-x-2"
+            >
+              <span>Export All Clips</span>
             </button>
             <button className="px-4 py-2 border border-mono-white/30 text-mono-white font-montserrat text-sm rounded hover:bg-mono-white/5 transition-colors">
               Regenerate
@@ -253,28 +293,48 @@ export default function ProjectDetailsPage() {
 
           <div className="space-y-3">
             {project.clips.map((clip, index) => (
-              <button
+              <div
                 key={clip.id}
-                onClick={() => setSelectedClipIndex(index)}
                 className={`
-                  w-full text-left p-4 border rounded-lg transition-all duration-300
+                  w-full p-4 border rounded-lg transition-all duration-300
                   ${
                     selectedClipIndex === index
-                      ? 'border-mono-white bg-mono-white/5 scale-[1.02]'
-                      : 'border-mono-silver/30 hover:border-mono-white hover:bg-mono-white/5'
+                      ? 'border-mono-white bg-mono-white/5'
+                      : 'border-mono-silver/30'
                   }
                 `}
               >
-                <div className="flex items-start justify-between mb-2">
-                  <h3 className="font-montserrat font-semibold text-base">{clip.title}</h3>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-mono-white rounded-full" />
-                    <span className="font-inter text-sm">{clip.score}</span>
+                <button
+                  onClick={() => setSelectedClipIndex(index)}
+                  className="w-full text-left mb-3"
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <h3 className="font-montserrat font-semibold text-base">{clip.title}</h3>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-2 h-2 bg-mono-white rounded-full" />
+                      <span className="font-inter text-sm">{clip.score}</span>
+                    </div>
                   </div>
-                </div>
-                <p className="font-inter text-xs text-mono-silver mb-1">{clip.timestamp}</p>
-                <p className="font-inter text-xs text-mono-silver/70">{clip.duration}s</p>
-              </button>
+                  <p className="font-inter text-xs text-mono-silver mb-1">{clip.timestamp}</p>
+                  <p className="font-inter text-xs text-mono-silver/70">{clip.duration}s</p>
+                </button>
+                <button
+                  onClick={() => router.push(`/dashboard/${projectId}/editor/${clip.id}`)}
+                  className="w-full bg-mono-white text-mono-black font-montserrat font-semibold text-xs px-3 py-2 rounded hover:bg-mono-silver transition-colors flex items-center justify-center space-x-2"
+                >
+                  <svg
+                    className="w-3 h-3"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                  </svg>
+                  <span>Edit Clip</span>
+                </button>
+              </div>
             ))}
           </div>
         </aside>

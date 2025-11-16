@@ -1,3 +1,5 @@
+'use client';
+
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { fetchFile, toBlobURL } from '@ffmpeg/util';
 
@@ -151,8 +153,9 @@ export async function exportTrimmedClip(
     await ffmpeg.deleteFile('input.mp4');
     await ffmpeg.deleteFile('output.mp4');
 
-    // Convert Uint8Array to Blob
-    const outputBlob = new Blob([data], { type: 'video/mp4' });
+    // Convert to Blob with proper type handling (copy to new Uint8Array to satisfy TS)
+    const fileData = data instanceof Uint8Array ? new Uint8Array(data) : new Uint8Array();
+    const outputBlob = new Blob([fileData], { type: 'video/mp4' });
 
     // Trigger download
     downloadBlob(outputBlob, filename);

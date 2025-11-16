@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import { Inter, Montserrat } from 'next/font/google';
-import { CommandPaletteProvider } from '@/components/command-palette/CommandPaletteProvider';
-import { ExportOverlayProvider } from '@/components/export/ExportOverlayProvider';
+import { Providers } from '@/components/providers/Providers';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
@@ -25,9 +24,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${montserrat.variable}`}>
       <body className="font-inter">
-        <ExportOverlayProvider>
-          <CommandPaletteProvider>{children}</CommandPaletteProvider>
-        </ExportOverlayProvider>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

@@ -63,6 +63,21 @@ export default function DashboardPage() {
       {/* Cinematic Top Separator */}
       <div className="h-px bg-gradient-to-r from-transparent via-mono-silver/20 to-transparent" />
 
+      {/* Command Palette Hint */}
+      <div className="px-6 lg:px-8 pt-4 pb-2">
+        <p className="text-xs text-mono-silver/60 font-inter">
+          Press{' '}
+          <kbd className="rounded border border-mono-silver/40 bg-mono-slate/30 px-1.5 py-0.5 text-[10px] font-montserrat">
+            ⌘K
+          </kbd>{' '}
+          or{' '}
+          <kbd className="rounded border border-mono-silver/40 bg-mono-slate/30 px-1.5 py-0.5 text-[10px] font-montserrat">
+            Ctrl+K
+          </kbd>{' '}
+          anywhere to open the Command Palette
+        </p>
+      </div>
+
       {/* Main Content */}
       <main className="px-6 lg:px-8 py-12 relative z-10">
         {projects.length === 0 ? (

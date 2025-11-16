@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Inter, Montserrat } from 'next/font/google';
+import { CommandPaletteProvider } from '@/components/command-palette/CommandPaletteProvider';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
@@ -10,9 +11,9 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: 'MonoFrame Studio | Cinematic AI Video Editing',
+  title: 'MonoFrame Studio | The First AI Film Editor',
   description:
-    'Revolutionize your content creation with AI-driven cinematic editing. Auto-detect the best moments, generate professional edits, and export for every platform.',
+    'The first AI film editor that edits your videos with taste, emotion, and cinematic timing. Transform raw footage into professional edits instantly.',
 };
 
 export default function RootLayout({
@@ -22,7 +23,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${inter.variable} ${montserrat.variable}`}>
-      <body className="font-inter">{children}</body>
+      <body className="font-inter">
+        <CommandPaletteProvider>{children}</CommandPaletteProvider>
+      </body>
     </html>
   );
 }

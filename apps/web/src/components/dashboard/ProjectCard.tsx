@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 
 interface ProjectCardProps {
-  id: number;
+  id: number | string;
   title: string;
   status: 'Processed' | 'Processing' | 'Uploaded';
   date: string;
@@ -20,7 +20,7 @@ export default function ProjectCard({ id, title, status, date, thumbnailUrl }: P
 
   return (
     <Link
-      href={`/preview?project=${id}`}
+      href={`/dashboard/${id}`}
       className="group block bg-mono-slate/30 border border-mono-silver/15 rounded-lg 
         overflow-hidden hover:border-mono-white/40 hover:shadow-2xl hover:-translate-y-1 
         transition-all duration-300"

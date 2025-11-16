@@ -1,77 +1,85 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Header from '@/components/dashboard/Header';
 import ProjectCard from '@/components/dashboard/ProjectCard';
 import EmptyState from '@/components/dashboard/EmptyState';
-import NewProjectModal from '@/components/dashboard/NewProjectModal';
-
-// Mock data
-const mockProjects = [
-  {
-    id: 1,
-    title: 'Emotional Peaks',
-    status: 'Processed' as const,
-    date: 'Jan 12, 2025',
-    thumbnailUrl: undefined,
-  },
-  {
-    id: 2,
-    title: 'Mountain Shoot',
-    status: 'Processing' as const,
-    date: 'Jan 18, 2025',
-    thumbnailUrl: undefined,
-  },
-  {
-    id: 3,
-    title: 'Wedding Footage',
-    status: 'Uploaded' as const,
-    date: 'Jan 20, 2025',
-    thumbnailUrl: undefined,
-  },
-];
+import { getProjects, type Project } from '@/lib/projectStore';
 
 export default function DashboardPage() {
-  const [projects, setProjects] = useState(mockProjects);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const router = useRouter();
+  const [projects, setProjects] = useState<Project[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const handleNewProject = (data: { title: string; description: string }) => {
-    const newProject = {
-      id: projects.length + 1,
-      title: data.title,
-      status: 'Uploaded' as const,
-      date: new Date().toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      }),
-      thumbnailUrl: undefined,
+  // Load projects from localStorage
+  useEffect(() => {
+    const loadProjects = () => {
+      const storedProjects = getProjects();
+      setProjects(storedProjects);
     };
 
-    setProjects([newProject, ...projects]);
+    loadProjects();
+
+    // Refresh every second to catch processing updates
+    const interval = setInterval(loadProjects, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleNewProject = () => {
+    router.push('/dashboard/new');
+  };
+
+  // Map project status to display status
+  const getDisplayStatus = (status: Project['status']): 'Processed' | 'Processing' | 'Uploaded' => {
+    if (status === 'processed') return 'Processed';
+    if (status === 'processing') return 'Processing';
+    return 'Uploaded';
+  };
+
+  // Format date
+  const formatDate = (isoDate: string) => {
+    const date = new Date(isoDate);
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen relative">
+      {/* Faint Left-to-Right Gradient Across Dashboard */}
+      <div className="fixed inset-0 pointer-events-none bg-gradient-to-r from-mono-white/[0.01] via-transparent to-mono-white/[0.01]" />
+
       {/* Header */}
       <Header
         title="My Projects"
         subtitle="Your AI-edited videos and workspaces"
         onMenuClick={() => setSidebarOpen(!sidebarOpen)}
-        onNewProject={() => setIsModalOpen(true)}
+        onNewProject={handleNewProject}
       />
 
+      {/* Cinematic Top Separator */}
+      <div className="h-px bg-gradient-to-r from-transparent via-mono-silver/20 to-transparent" />
+
       {/* Main Content */}
-      <main className="px-6 lg:px-8 py-12">
+      <main className="px-6 lg:px-8 py-12 relative z-10">
         {projects.length === 0 ? (
-          <EmptyState onUpload={() => setIsModalOpen(true)} />
+          <EmptyState />
         ) : (
           <div className="animate-fade-up">
             {/* Project Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {projects.map((project) => (
-                <ProjectCard key={project.id} {...project} />
+                <ProjectCard
+                  key={project.id}
+                  id={project.id}
+                  title={project.title}
+                  status={getDisplayStatus(project.status)}
+                  date={formatDate(project.createdAt)}
+                  thumbnailUrl={project.thumbnailUrl}
+                />
               ))}
             </div>
 
@@ -86,13 +94,13 @@ export default function DashboardPage() {
                 </div>
                 <div className="space-y-2">
                   <p className="font-montserrat font-bold text-4xl text-mono-white">
-                    {projects.filter((p) => p.status === 'Processed').length}
+                    {projects.filter((p) => p.status === 'processed').length}
                   </p>
                   <p className="font-inter text-sm text-mono-silver">Processed</p>
                 </div>
                 <div className="space-y-2">
                   <p className="font-montserrat font-bold text-4xl text-mono-white">
-                    {projects.filter((p) => p.status === 'Processing').length}
+                    {projects.filter((p) => p.status === 'processing').length}
                   </p>
                   <p className="font-inter text-sm text-mono-silver">In Progress</p>
                 </div>
@@ -101,13 +109,6 @@ export default function DashboardPage() {
           </div>
         )}
       </main>
-
-      {/* New Project Modal */}
-      <NewProjectModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSubmit={handleNewProject}
-      />
     </div>
   );
 }

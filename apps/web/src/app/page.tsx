@@ -378,8 +378,8 @@ export default function Home() {
               <div
                 key={i}
                 className={`border rounded-lg p-8 animate-fade-up relative transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 ${plan.popular
-                    ? 'border-mono-white bg-mono-white/5 scale-105'
-                    : 'border-mono-silver/30 bg-mono-slate/30 hover:border-mono-white'
+                  ? 'border-mono-white bg-mono-white/5 scale-105'
+                  : 'border-mono-silver/30 bg-mono-slate/30 hover:border-mono-white'
                   }`}
                 style={{ animationDelay: `${i * 0.2}s` }}
               >
@@ -418,8 +418,8 @@ export default function Home() {
                 <Link
                   href="/upload"
                   className={`block text-center font-montserrat font-semibold px-6 py-3 rounded transition-all duration-300 ${plan.popular
-                      ? 'bg-mono-white text-mono-black hover:bg-mono-silver'
-                      : 'border-2 border-mono-white text-mono-white hover:bg-mono-white hover:text-mono-black'
+                    ? 'bg-mono-white text-mono-black hover:bg-mono-silver'
+                    : 'border-2 border-mono-white text-mono-white hover:bg-mono-white hover:text-mono-black'
                     }`}
                 >
                   {plan.cta}

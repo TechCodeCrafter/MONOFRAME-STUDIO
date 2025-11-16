@@ -25,6 +25,7 @@ const config: Config = {
         'fade-in': 'fadeIn 1s ease-in',
         'fade-up': 'fadeUp 1s ease-out',
         'slide-in': 'slideIn 0.8s ease-out',
+        'breathe': 'breathe 4s ease-in-out infinite',
       },
       keyframes: {
         fadeIn: {
@@ -38,6 +39,10 @@ const config: Config = {
         slideIn: {
           '0%': { opacity: '0', transform: 'translateX(-20px)' },
           '100%': { opacity: '1', transform: 'translateX(0)' },
+        },
+        breathe: {
+          '0%, 100%': { opacity: '1', transform: 'scale(1)' },
+          '50%': { opacity: '0.95', transform: 'scale(0.998)' },
         },
       },
     },

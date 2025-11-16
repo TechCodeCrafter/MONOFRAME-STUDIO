@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 
 export default function Home() {
   const [email, setEmail] = useState('');
@@ -99,7 +100,9 @@ export default function Home() {
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-8">
-              <button className="btn-primary w-full sm:w-auto">Start Creating</button>
+              <Link href="/upload" className="btn-primary w-full sm:w-auto text-center">
+                Start Creating
+              </Link>
               <button className="btn-secondary w-full sm:w-auto">Watch Demo</button>
             </div>
 

@@ -3,18 +3,42 @@
 @tailwind utilities;
 
 :root {
-  --background: #000000;
-  --foreground: #ffffff;
+  --font-inter: 'Inter', sans-serif;
+  --font-montserrat: 'Montserrat', sans-serif;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter);
+  color: #ffffff;
+  background: #000000;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+
+  .animation-delay-200 {
+    animation-delay: 0.2s;
+  }
+
+  .animation-delay-400 {
+    animation-delay: 0.4s;
+  }
+
+  .animation-delay-600 {
+    animation-delay: 0.6s;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-mono-white text-mono-black font-montserrat font-semibold px-8 py-4 rounded-none hover:bg-mono-silver transition-all duration-300;
+  }
+
+  .btn-secondary {
+    @apply border-2 border-mono-white text-mono-white font-montserrat font-semibold px-8 py-4 rounded-none hover:bg-mono-white hover:text-mono-black transition-all duration-300;
   }
 }

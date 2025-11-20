@@ -20,7 +20,7 @@ export default function UploadPage() {
         const k = 1024;
         const sizes = ['Bytes', 'KB', 'MB', 'GB'];
         const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
     };
 
     const handleDragEnter = (e: DragEvent<HTMLDivElement>) => {
@@ -80,35 +80,9 @@ export default function UploadPage() {
     };
 
     return (
-        <main className="min-h-screen bg-mono-black text-mono-white flex flex-col animate-fade-in">
+        <main className="min-h-screen bg-mono-black text-mono-white flex flex-col animate-fade-in pt-16">
             {/* Cinematic Vignette */}
             <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.02),transparent_70%)]" />
-
-            {/* Header */}
-            <header className="border-b border-mono-silver/20 py-8 md:py-12 px-8 relative z-10">
-                <div className="container mx-auto max-w-6xl flex items-center justify-between">
-                    <Link href="/" className="flex items-center space-x-4 hover:opacity-80 transition-opacity">
-                        <svg
-                            className="w-10 h-10"
-                            viewBox="0 0 64 64"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="1.5"
-                        >
-                            <rect x="8" y="8" width="48" height="48" />
-                            <line x1="32" y1="8" x2="32" y2="56" />
-                            <line x1="8" y1="32" x2="56" y2="32" />
-                        </svg>
-                        <span className="font-montserrat font-bold text-2xl">MONOFRAME</span>
-                    </Link>
-                    <Link
-                        href="/"
-                        className="font-inter text-sm text-mono-silver hover:text-mono-white transition-colors"
-                    >
-                        Back to Home
-                    </Link>
-                </div>
-            </header>
 
             {/* Main Content */}
             <div className="flex-1 flex items-center justify-center px-4 py-16 relative z-10">
@@ -156,7 +130,9 @@ export default function UploadPage() {
 
                                 <div className="text-center space-y-6 relative z-10">
                                     {/* Upload Icon - MonoFrame Grid Rotated */}
-                                    <div className={`transition-transform duration-300 ${isDragging ? 'translate-y-[-3px]' : ''}`}>
+                                    <div
+                                        className={`transition-transform duration-300 ${isDragging ? 'translate-y-[-3px]' : ''}`}
+                                    >
                                         <svg
                                             className="w-32 h-32 mx-auto stroke-mono-silver"
                                             viewBox="0 0 64 64"
@@ -167,7 +143,10 @@ export default function UploadPage() {
                                             <rect x="16" y="16" width="32" height="32" />
                                             <line x1="32" y1="16" x2="32" y2="48" />
                                             <line x1="16" y1="32" x2="48" y2="32" />
-                                            <path d="M32 8 L32 16 M32 48 L32 56 M8 32 L16 32 M48 32 L56 32" strokeWidth="2" />
+                                            <path
+                                                d="M32 8 L32 16 M32 48 L32 56 M8 32 L16 32 M48 32 L56 32"
+                                                strokeWidth="2"
+                                            />
                                         </svg>
                                     </div>
 
@@ -282,4 +261,3 @@ export default function UploadPage() {
         </main>
     );
 }
-

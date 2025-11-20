@@ -7,6 +7,8 @@ import { getProjectById, updateProject, type Clip, type Project } from '@/lib/pr
 import { exportTrimmedClip, exportOriginalClip } from '@/lib/exporter';
 import { useExportOverlay } from '@/components/export';
 import { EmotionGraph } from '@/components/emotion';
+import { MotionCurve } from '@/components/motion';
+import { useFullscreen } from '@/hooks/useFullscreen';
 
 // ============================================================================
 // HELPER FUNCTIONS (outside component)
@@ -93,6 +95,15 @@ const MemoizedEmotionGraph = memo(
     prevProps.regenerateKey === nextProps.regenerateKey
 );
 
+const MemoizedMotionCurve = memo(
+  MotionCurve,
+  (prevProps, nextProps) =>
+    prevProps.clip.id === nextProps.clip.id &&
+    prevProps.startTime === nextProps.startTime &&
+    prevProps.endTime === nextProps.endTime &&
+    prevProps.regenerateKey === nextProps.regenerateKey
+);
+
 // ============================================================================
 // MAIN COMPONENT
 // ============================================================================
@@ -120,6 +131,14 @@ export default function ClipEditorPage() {
   const [duration, setDuration] = useState(0);
   const [videoDuration, setVideoDuration] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const fullscreenContainerRef = useRef<HTMLDivElement>(null);
+
+  // Fullscreen hook
+  const {
+    isFullscreen,
+    isSupported: isFullscreenSupported,
+    toggleFullscreen,
+  } = useFullscreen(fullscreenContainerRef);
 
   // Trim controls
   const [trimStart, setTrimStart] = useState(0);
@@ -249,21 +268,31 @@ export default function ClipEditorPage() {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Space = play/pause
       if (e.code === 'Space' && e.target === document.body) {
         e.preventDefault();
         togglePlayPause();
       }
+      // Cmd+F or Ctrl+F = fullscreen toggle
+      if ((e.key === 'f' || e.key === 'F') && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        toggleFullscreen();
+      }
+      // ? = show shortcuts
       if (e.key === '?' && e.shiftKey) {
         e.preventDefault();
         setShowShortcuts((prev) => !prev);
       }
+      // ESC = close shortcuts (fullscreen exit is handled by browser natively)
       if (e.key === 'Escape' && showShortcuts) {
         setShowShortcuts(false);
       }
+      // Left arrow = seek -5s
       if (e.key === 'ArrowLeft') {
         e.preventDefault();
         handleSeek(currentTime - 5);
       }
+      // Right arrow = seek +5s
       if (e.key === 'ArrowRight') {
         e.preventDefault();
         handleSeek(currentTime + 5);
@@ -272,7 +301,7 @@ export default function ClipEditorPage() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentTime, showShortcuts, togglePlayPause, handleSeek]);
+  }, [currentTime, showShortcuts, togglePlayPause, handleSeek, toggleFullscreen]);
 
   // Handlers (memoized)
   const handleClipChange = useCallback(
@@ -506,76 +535,91 @@ export default function ClipEditorPage() {
 
   return (
     <div className="h-screen flex flex-col bg-mono-black text-mono-white overflow-hidden">
-      {/* Top Navigation Bar */}
-      <header className="h-14 border-b border-mono-silver/10 flex items-center justify-between px-6 bg-mono-shadow/50 backdrop-blur-sm">
-        <div className="flex items-center space-x-6">
-          <Link
-            href={`/dashboard/${projectId}`}
-            className="flex items-center space-x-2 text-mono-silver hover:text-mono-white transition-colors group"
-          >
-            <svg
-              className="w-4 h-4 stroke-current group-hover:-translate-x-1 transition-transform"
-              viewBox="0 0 24 24"
-              fill="none"
-              strokeWidth="2"
+      {/* Top Navigation Bar - hidden in fullscreen */}
+      {!isFullscreen && (
+        <header className="h-14 border-b border-mono-silver/10 flex items-center justify-between px-6 bg-mono-shadow/50 backdrop-blur-sm transition-opacity duration-150">
+          <div className="flex items-center space-x-6">
+            <Link
+              href={`/dashboard/${projectId}`}
+              className="flex items-center space-x-2 text-mono-silver hover:text-mono-white transition-colors group"
             >
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
-            <span className="font-inter text-sm">Back to Project</span>
-          </Link>
+              <svg
+                className="w-4 h-4 stroke-current group-hover:-translate-x-1 transition-transform"
+                viewBox="0 0 24 24"
+                fill="none"
+                strokeWidth="2"
+              >
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+              <span className="font-inter text-sm">Back to Project</span>
+            </Link>
 
-          <div className="flex items-center space-x-2">
-            <span className="font-inter text-xs text-mono-silver/60">Clip:</span>
-            <select
-              value={clip.id}
-              onChange={(e) => handleClipChange(parseInt(e.target.value, 10))}
-              className="bg-mono-slate/50 border border-mono-silver/20 rounded px-3 py-1 text-sm font-montserrat
+            <div className="flex items-center space-x-2">
+              <span className="font-inter text-xs text-mono-silver/60">Clip:</span>
+              <select
+                value={clip.id}
+                onChange={(e) => handleClipChange(parseInt(e.target.value, 10))}
+                className="bg-mono-slate/50 border border-mono-silver/20 rounded px-3 py-1 text-sm font-montserrat
                 focus:outline-none focus:border-mono-white transition-colors cursor-pointer"
+              >
+                {project.clips?.map((c, idx) => (
+                  <option key={c.id} value={c.id}>
+                    {idx + 1}. {c.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              {isSaving ? (
+                <>
+                  <div className="w-2 h-2 bg-mono-silver/50 rounded-full animate-pulse" />
+                  <span className="font-inter text-xs text-mono-silver/70">Saving...</span>
+                </>
+              ) : (
+                <>
+                  <div className="w-2 h-2 bg-mono-white/30 rounded-full" />
+                  <span className="font-inter text-xs text-mono-silver/60">All changes saved</span>
+                </>
+              )}
+            </div>
+
+            <button
+              onClick={() => setShowShortcuts(true)}
+              className="font-inter text-xs text-mono-silver hover:text-mono-white transition-colors flex items-center space-x-1"
             >
-              {project.clips?.map((c, idx) => (
-                <option key={c.id} value={c.id}>
-                  {idx + 1}. {c.title}
-                </option>
-              ))}
-            </select>
+              <span>Shortcuts</span>
+              <kbd className="text-[10px] px-1 py-0.5 rounded bg-mono-slate/50 border border-mono-silver/20">
+                ?
+              </kbd>
+            </button>
           </div>
-        </div>
-
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2">
-            {isSaving ? (
-              <>
-                <div className="w-2 h-2 bg-mono-silver/50 rounded-full animate-pulse" />
-                <span className="font-inter text-xs text-mono-silver/70">Saving...</span>
-              </>
-            ) : (
-              <>
-                <div className="w-2 h-2 bg-mono-white/30 rounded-full" />
-                <span className="font-inter text-xs text-mono-silver/60">All changes saved</span>
-              </>
-            )}
-          </div>
-
-          <button
-            onClick={() => setShowShortcuts(true)}
-            className="font-inter text-xs text-mono-silver hover:text-mono-white transition-colors flex items-center space-x-1"
-          >
-            <span>Shortcuts</span>
-            <kbd className="text-[10px] px-1 py-0.5 rounded bg-mono-slate/50 border border-mono-silver/20">
-              ?
-            </kbd>
-          </button>
-        </div>
-      </header>
+        </header>
+      )}
 
       {/* Main Editor Area */}
-      <div className="flex-1 flex overflow-hidden">
+      <div
+        ref={fullscreenContainerRef}
+        className={`flex-1 flex overflow-hidden ${isFullscreen ? 'bg-mono-black' : ''}`}
+      >
         {/* Left: Video Player */}
-        <div className="flex-1 flex flex-col p-6 relative">
-          <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_40%,rgba(0,0,0,0.6)_100%)]" />
+        <div
+          className={`flex-1 flex flex-col p-6 relative transition-all duration-150 ${isFullscreen ? 'p-0' : ''}`}
+        >
+          <div
+            className={`absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_40%,rgba(0,0,0,0.6)_100%)] transition-opacity duration-150 ${isFullscreen ? 'opacity-0' : ''}`}
+          />
 
           <div className="flex-1 flex items-center justify-center relative z-10">
-            <div className="w-full max-w-5xl aspect-video bg-mono-shadow border border-mono-silver/10 rounded-lg overflow-hidden relative group">
+            <div
+              className={`w-full bg-mono-shadow border border-mono-silver/10 rounded-lg overflow-hidden relative group transition-all duration-150 ${
+                isFullscreen
+                  ? 'max-w-none h-full border-0 rounded-none bg-mono-black'
+                  : 'max-w-5xl aspect-video'
+              }`}
+            >
               <video
                 ref={videoRef}
                 className="w-full h-full object-contain"
@@ -626,262 +670,369 @@ export default function ClipEditorPage() {
                     </span>
                   </div>
 
-                  <button className="w-8 h-8 flex items-center justify-center hover:bg-mono-white/10 rounded transition-colors">
-                    <svg
-                      className="w-4 h-4"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
+                  {isFullscreenSupported && (
+                    <button
+                      onClick={toggleFullscreen}
+                      className="w-8 h-8 flex items-center justify-center hover:bg-mono-white/10 rounded transition-colors"
+                      title="Fullscreen (⌘+F)"
                     >
-                      <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
-                    </svg>
-                  </button>
+                      {isFullscreen ? (
+                        <svg
+                          className="w-4 h-4"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        >
+                          <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3" />
+                        </svg>
+                      ) : (
+                        <svg
+                          className="w-4 h-4"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        >
+                          <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+                        </svg>
+                      )}
+                    </button>
+                  )}
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
 
-        {/* Right Sidebar */}
-        <aside className="w-[350px] flex-shrink-0 border-l border-mono-silver/10 bg-mono-shadow/50 p-6 overflow-y-auto space-y-6">
-          <div>
-            <h3 className="font-montserrat font-semibold text-lg mb-4">Clip Info</h3>
-            <div className="space-y-3">
-              <div>
-                <label className="font-inter text-xs text-mono-silver/60 uppercase tracking-wider mb-1 block">
-                  Title
-                </label>
-                <input
-                  type="text"
-                  value={clip.title}
-                  readOnly
-                  className="w-full bg-mono-black/50 border border-mono-silver/20 rounded px-3 py-2 text-sm font-montserrat
-                    focus:outline-none focus:border-mono-white transition-colors"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="font-inter text-xs text-mono-silver/60 uppercase tracking-wider mb-1 block">
-                    Duration
-                  </label>
-                  <p className="font-montserrat text-sm">{(trimEnd - trimStart).toFixed(1)}s</p>
-                </div>
-                <div>
-                  <label className="font-inter text-xs text-mono-silver/60 uppercase tracking-wider mb-1 block">
-                    Score
-                  </label>
-                  <p className="font-montserrat text-sm">{clip.score}/100</p>
-                </div>
-              </div>
-            </div>
-          </div>
+              {/* Fullscreen Minimal Overlay */}
+              {isFullscreen && (
+                <div className="absolute inset-0 pointer-events-none z-20">
+                  {/* Top Bar - Back and Exit Buttons */}
+                  <div className="absolute top-0 left-0 right-0 p-6 bg-gradient-to-b from-mono-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-auto">
+                    <div className="flex items-center justify-between">
+                      {/* Back Button */}
+                      <button
+                        onClick={toggleFullscreen}
+                        className="flex items-center space-x-2 text-mono-white hover:text-mono-silver transition-colors"
+                      >
+                        <svg
+                          className="w-5 h-5"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        >
+                          <polyline points="15 18 9 12 15 6" />
+                        </svg>
+                        <span className="font-inter text-sm">Exit Fullscreen</span>
+                      </button>
 
-          <div className="h-px bg-mono-silver/10" />
-
-          <div>
-            <h3 className="font-montserrat font-semibold text-lg mb-4">Trim Controls</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="font-inter text-xs text-mono-silver/60 uppercase tracking-wider mb-2 block">
-                  Start Time: {formatTime(trimStart)}
-                </label>
-                <input
-                  type="range"
-                  min="0"
-                  max={videoDuration || clip.endTime}
-                  step="0.1"
-                  value={trimStart}
-                  onChange={(e) => handleTrimSliderChange('start', parseFloat(e.target.value))}
-                  className="w-full"
-                />
-              </div>
-              <div>
-                <label className="font-inter text-xs text-mono-silver/60 uppercase tracking-wider mb-2 block">
-                  End Time: {formatTime(trimEnd)}
-                </label>
-                <input
-                  type="range"
-                  min="0"
-                  max={videoDuration || clip.endTime}
-                  step="0.1"
-                  value={trimEnd}
-                  onChange={(e) => handleTrimSliderChange('end', parseFloat(e.target.value))}
-                  className="w-full"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="h-px bg-mono-silver/10" />
-
-          <div>
-            <h3 className="font-montserrat font-semibold text-lg mb-4">AI Insights</h3>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-mono-black/50 border border-mono-silver/20 rounded p-3">
-                <p className="font-inter text-xs text-mono-silver/60 uppercase tracking-wider mb-1">
-                  Emotion
-                </p>
-                <p className="font-montserrat text-xl">{clip.analysis.emotionalScore}</p>
-              </div>
-              <div className="bg-mono-black/50 border border-mono-silver/20 rounded p-3">
-                <p className="font-inter text-xs text-mono-silver/60 uppercase tracking-wider mb-1">
-                  Tension
-                </p>
-                <p className="font-montserrat text-xl">{clip.analysis.sceneTension}</p>
-              </div>
-              <div className="bg-mono-black/50 border border-mono-silver/20 rounded p-3">
-                <p className="font-inter text-xs text-mono-silver/60 uppercase tracking-wider mb-1">
-                  Energy
-                </p>
-                <p className="font-montserrat text-xl">{clip.analysis.audioEnergy}</p>
-              </div>
-              <div className="bg-mono-black/50 border border-mono-silver/20 rounded p-3">
-                <p className="font-inter text-xs text-mono-silver/60 uppercase tracking-wider mb-1">
-                  Motion
-                </p>
-                <p className="font-montserrat text-xl">{clip.analysis.motionScore}</p>
-              </div>
-            </div>
-            <div className="mt-3 space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="font-inter text-mono-silver/60">Pacing</span>
-                <span className="font-montserrat">{clip.analysis.pacing}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="font-inter text-mono-silver/60">Lighting</span>
-                <span className="font-montserrat">{clip.analysis.lighting}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="font-inter text-mono-silver/60">Color Grade</span>
-                <span className="font-montserrat">{clip.analysis.colorGrade}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="h-px bg-mono-silver/10" />
-
-          <div className="space-y-3">
-            <button
-              onClick={handleSaveClip}
-              disabled={isSaving}
-              className="w-full bg-mono-white text-mono-black font-montserrat font-semibold px-4 py-3 rounded hover:bg-mono-silver hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSaving ? 'Saving...' : 'Save Clip'}
-            </button>
-
-            <button
-              onClick={handleExportTrimmed}
-              disabled={isSaving}
-              className="w-full border border-mono-silver/30 text-mono-white font-montserrat font-semibold px-4 py-3 rounded hover:bg-mono-white/5 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
-            >
-              <svg
-                className="w-4 h-4"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="7 10 12 15 17 10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
-              </svg>
-              <span>Export Trimmed Clip</span>
-            </button>
-
-            <button
-              onClick={handleExportOriginal}
-              disabled={isSaving}
-              className="w-full border border-mono-silver/30 text-mono-white font-montserrat font-semibold px-4 py-3 rounded hover:bg-mono-white/5 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
-            >
-              <svg
-                className="w-4 h-4"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="7 10 12 15 17 10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
-              </svg>
-              <span>Export Original Clip</span>
-            </button>
-
-            <button
-              onClick={handleRegenerateClip}
-              disabled={isSaving}
-              className="w-full border border-mono-silver/30 text-mono-white font-montserrat font-semibold px-4 py-3 rounded hover:bg-mono-white/5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Regenerate Clip
-            </button>
-            <button
-              onClick={handleDeleteClip}
-              disabled={isSaving}
-              className="w-full border border-red-500/30 text-red-400 font-montserrat font-semibold px-4 py-3 rounded hover:bg-red-500/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Delete Clip
-            </button>
-          </div>
-        </aside>
-      </div>
-
-      {/* Emotion Curve Graph */}
-      <MemoizedEmotionGraph
-        clip={clip}
-        startTime={trimStart}
-        endTime={trimEnd}
-        duration={trimEnd - trimStart}
-        regenerateKey={regenerateKey}
-      />
-
-      {/* Bottom: Timeline Editor */}
-      <div className="h-32 border-t border-mono-silver/10 bg-mono-shadow/50 px-6 py-4">
-        <div className="h-full flex flex-col">
-          <div className="flex items-center justify-between mb-2">
-            <h4 className="font-montserrat font-semibold text-sm">Timeline</h4>
-            <span className="font-inter text-xs text-mono-silver/60">
-              {formatTime(trimStart)} → {formatTime(trimEnd)} ({(trimEnd - trimStart).toFixed(1)}s)
-            </span>
-          </div>
-
-          <div
-            className="flex-1 relative bg-mono-black/50 border border-mono-silver/20 rounded overflow-hidden cursor-pointer"
-            onClick={handleTimelineClick}
-          >
-            <div className="absolute inset-0">
-              <div
-                className="absolute inset-y-0 bg-mono-white/5 border-l-2 border-r-2 border-mono-white/40"
-                style={{
-                  left: `${(trimStart / (videoDuration || clip.endTime)) * 100}%`,
-                  right: `${100 - (trimEnd / (videoDuration || clip.endTime)) * 100}%`,
-                }}
-              >
-                <div
-                  className="absolute inset-y-0 w-0.5 bg-mono-white shadow-[0_0_8px_rgba(255,255,255,0.6)] pointer-events-none"
-                  style={{
-                    left: `${((currentTime - trimStart) / (trimEnd - trimStart)) * 100}%`,
-                  }}
-                />
-              </div>
-            </div>
-
-            <div className="absolute inset-0 flex items-end justify-between px-2 pb-2 pointer-events-none">
-              {[0, 0.25, 0.5, 0.75, 1].map((fraction) => {
-                const time = trimStart + fraction * (trimEnd - trimStart);
-                return (
-                  <div key={fraction} className="flex flex-col items-center">
-                    <div className="w-px h-2 bg-mono-silver/40" />
-                    <span className="font-inter text-[10px] text-mono-silver/60 mt-1">
-                      {formatTime(time)}
-                    </span>
+                      {/* Exit Fullscreen Button */}
+                      <button
+                        onClick={toggleFullscreen}
+                        className="w-10 h-10 rounded-full bg-mono-white/10 border border-mono-white/20 flex items-center justify-center hover:bg-mono-white/20 transition-all"
+                        title="Exit Fullscreen (ESC)"
+                      >
+                        <svg
+                          className="w-5 h-5"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        >
+                          <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
-                );
-              })}
+
+                  {/* Center Play/Pause Button */}
+                  {!isPlaying && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-auto">
+                      <button
+                        onClick={togglePlayPause}
+                        className="w-24 h-24 rounded-full bg-mono-white/10 border-2 border-mono-white backdrop-blur-sm flex items-center justify-center hover:bg-mono-white/20 hover:scale-110 transition-all shadow-2xl"
+                      >
+                        <svg
+                          className="w-12 h-12 stroke-mono-white ml-2"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          strokeWidth="2"
+                        >
+                          <polygon points="5,3 19,12 5,21" fill="currentColor" stroke="none" />
+                        </svg>
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Bottom Bar - Time Display */}
+                  <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-mono-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-auto">
+                    <div className="flex items-center justify-center">
+                      <span className="font-inter text-lg text-mono-white">
+                        {formatTime(currentTime)} / {formatTime(trimEnd)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
+
+        {/* Right Sidebar - hidden in fullscreen */}
+        {!isFullscreen && (
+          <aside className="w-[350px] flex-shrink-0 border-l border-mono-silver/10 bg-mono-shadow/50 p-6 overflow-y-auto space-y-6 transition-opacity duration-150">
+            <div>
+              <h3 className="font-montserrat font-semibold text-lg mb-4">Clip Info</h3>
+              <div className="space-y-3">
+                <div>
+                  <label className="font-inter text-xs text-mono-silver/60 uppercase tracking-wider mb-1 block">
+                    Title
+                  </label>
+                  <input
+                    type="text"
+                    value={clip.title}
+                    readOnly
+                    className="w-full bg-mono-black/50 border border-mono-silver/20 rounded px-3 py-2 text-sm font-montserrat
+                    focus:outline-none focus:border-mono-white transition-colors"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="font-inter text-xs text-mono-silver/60 uppercase tracking-wider mb-1 block">
+                      Duration
+                    </label>
+                    <p className="font-montserrat text-sm">{(trimEnd - trimStart).toFixed(1)}s</p>
+                  </div>
+                  <div>
+                    <label className="font-inter text-xs text-mono-silver/60 uppercase tracking-wider mb-1 block">
+                      Score
+                    </label>
+                    <p className="font-montserrat text-sm">{clip.score}/100</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="h-px bg-mono-silver/10" />
+
+            <div>
+              <h3 className="font-montserrat font-semibold text-lg mb-4">Trim Controls</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="font-inter text-xs text-mono-silver/60 uppercase tracking-wider mb-2 block">
+                    Start Time: {formatTime(trimStart)}
+                  </label>
+                  <input
+                    type="range"
+                    min="0"
+                    max={videoDuration || clip.endTime}
+                    step="0.1"
+                    value={trimStart}
+                    onChange={(e) => handleTrimSliderChange('start', parseFloat(e.target.value))}
+                    className="w-full"
+                  />
+                </div>
+                <div>
+                  <label className="font-inter text-xs text-mono-silver/60 uppercase tracking-wider mb-2 block">
+                    End Time: {formatTime(trimEnd)}
+                  </label>
+                  <input
+                    type="range"
+                    min="0"
+                    max={videoDuration || clip.endTime}
+                    step="0.1"
+                    value={trimEnd}
+                    onChange={(e) => handleTrimSliderChange('end', parseFloat(e.target.value))}
+                    className="w-full"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="h-px bg-mono-silver/10" />
+
+            <div>
+              <h3 className="font-montserrat font-semibold text-lg mb-4">AI Insights</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-mono-black/50 border border-mono-silver/20 rounded p-3">
+                  <p className="font-inter text-xs text-mono-silver/60 uppercase tracking-wider mb-1">
+                    Emotion
+                  </p>
+                  <p className="font-montserrat text-xl">{clip.analysis.emotionalScore}</p>
+                </div>
+                <div className="bg-mono-black/50 border border-mono-silver/20 rounded p-3">
+                  <p className="font-inter text-xs text-mono-silver/60 uppercase tracking-wider mb-1">
+                    Tension
+                  </p>
+                  <p className="font-montserrat text-xl">{clip.analysis.sceneTension}</p>
+                </div>
+                <div className="bg-mono-black/50 border border-mono-silver/20 rounded p-3">
+                  <p className="font-inter text-xs text-mono-silver/60 uppercase tracking-wider mb-1">
+                    Energy
+                  </p>
+                  <p className="font-montserrat text-xl">{clip.analysis.audioEnergy}</p>
+                </div>
+                <div className="bg-mono-black/50 border border-mono-silver/20 rounded p-3">
+                  <p className="font-inter text-xs text-mono-silver/60 uppercase tracking-wider mb-1">
+                    Motion
+                  </p>
+                  <p className="font-montserrat text-xl">{clip.analysis.motionScore}</p>
+                </div>
+              </div>
+              <div className="mt-3 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="font-inter text-mono-silver/60">Pacing</span>
+                  <span className="font-montserrat">{clip.analysis.pacing}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="font-inter text-mono-silver/60">Lighting</span>
+                  <span className="font-montserrat">{clip.analysis.lighting}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="font-inter text-mono-silver/60">Color Grade</span>
+                  <span className="font-montserrat">{clip.analysis.colorGrade}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="h-px bg-mono-silver/10" />
+
+            <div className="space-y-3">
+              <button
+                onClick={handleSaveClip}
+                disabled={isSaving}
+                className="w-full bg-mono-white text-mono-black font-montserrat font-semibold px-4 py-3 rounded hover:bg-mono-silver hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSaving ? 'Saving...' : 'Save Clip'}
+              </button>
+
+              <button
+                onClick={handleExportTrimmed}
+                disabled={isSaving}
+                className="w-full border border-mono-silver/30 text-mono-white font-montserrat font-semibold px-4 py-3 rounded hover:bg-mono-white/5 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+              >
+                <svg
+                  className="w-4 h-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                <span>Export Trimmed Clip</span>
+              </button>
+
+              <button
+                onClick={handleExportOriginal}
+                disabled={isSaving}
+                className="w-full border border-mono-silver/30 text-mono-white font-montserrat font-semibold px-4 py-3 rounded hover:bg-mono-white/5 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+              >
+                <svg
+                  className="w-4 h-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                <span>Export Original Clip</span>
+              </button>
+
+              <button
+                onClick={handleRegenerateClip}
+                disabled={isSaving}
+                className="w-full border border-mono-silver/30 text-mono-white font-montserrat font-semibold px-4 py-3 rounded hover:bg-mono-white/5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Regenerate Clip
+              </button>
+              <button
+                onClick={handleDeleteClip}
+                disabled={isSaving}
+                className="w-full border border-red-500/30 text-red-400 font-montserrat font-semibold px-4 py-3 rounded hover:bg-red-500/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Delete Clip
+              </button>
+            </div>
+          </aside>
+        )}
       </div>
+
+      {/* Graphs and Timeline - hidden in fullscreen */}
+      {!isFullscreen && (
+        <>
+          {/* Emotion Curve Graph */}
+          <MemoizedEmotionGraph
+            clip={clip}
+            startTime={trimStart}
+            endTime={trimEnd}
+            duration={trimEnd - trimStart}
+            regenerateKey={regenerateKey}
+          />
+
+          {/* Motion Activity Curve */}
+          <MemoizedMotionCurve
+            clip={clip}
+            startTime={trimStart}
+            endTime={trimEnd}
+            duration={trimEnd - trimStart}
+            regenerateKey={regenerateKey}
+          />
+
+          {/* Bottom: Timeline Editor */}
+          <div className="h-32 border-t border-mono-silver/10 bg-mono-shadow/50 px-6 py-4 transition-opacity duration-150">
+            <div className="h-full flex flex-col">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="font-montserrat font-semibold text-sm">Timeline</h4>
+                <span className="font-inter text-xs text-mono-silver/60">
+                  {formatTime(trimStart)} → {formatTime(trimEnd)} (
+                  {(trimEnd - trimStart).toFixed(1)}s)
+                </span>
+              </div>
+
+              <div
+                className="flex-1 relative bg-mono-black/50 border border-mono-silver/20 rounded overflow-hidden cursor-pointer"
+                onClick={handleTimelineClick}
+              >
+                <div className="absolute inset-0">
+                  <div
+                    className="absolute inset-y-0 bg-mono-white/5 border-l-2 border-r-2 border-mono-white/40"
+                    style={{
+                      left: `${(trimStart / (videoDuration || clip.endTime)) * 100}%`,
+                      right: `${100 - (trimEnd / (videoDuration || clip.endTime)) * 100}%`,
+                    }}
+                  >
+                    <div
+                      className="absolute inset-y-0 w-0.5 bg-mono-white shadow-[0_0_8px_rgba(255,255,255,0.6)] pointer-events-none"
+                      style={{
+                        left: `${((currentTime - trimStart) / (trimEnd - trimStart)) * 100}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div className="absolute inset-0 flex items-end justify-between px-2 pb-2 pointer-events-none">
+                  {[0, 0.25, 0.5, 0.75, 1].map((fraction) => {
+                    const time = trimStart + fraction * (trimEnd - trimStart);
+                    return (
+                      <div key={fraction} className="flex flex-col items-center">
+                        <div className="w-px h-2 bg-mono-silver/40" />
+                        <span className="font-inter text-[10px] text-mono-silver/60 mt-1">
+                          {formatTime(time)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Keyboard Shortcuts Modal */}
       {showShortcuts && (
@@ -915,10 +1066,11 @@ export default function ClipEditorPage() {
             <div className="space-y-3">
               {[
                 { key: 'Space', description: 'Play / Pause' },
+                { key: '⌘+F', description: 'Toggle Fullscreen' },
                 { key: '←', description: 'Seek -5s' },
                 { key: '→', description: 'Seek +5s' },
                 { key: '?', description: 'Show shortcuts' },
-                { key: 'Esc', description: 'Close modal' },
+                { key: 'Esc', description: 'Close modal / Exit Fullscreen' },
               ].map((shortcut) => (
                 <div key={shortcut.key} className="flex items-center justify-between">
                   <span className="font-inter text-sm text-mono-silver">

@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
+import { EditorShowcase, Testimonials } from '@/components/home';
 
 export default function Home() {
   const [email, setEmail] = useState('');
@@ -126,6 +128,22 @@ export default function Home() {
               >
                 Upload Your First Video
               </Link>
+              <Link
+                href="/dashboard"
+                className="border border-mono-white/30 text-mono-white font-montserrat font-semibold px-12 py-5 text-lg rounded hover:bg-mono-white/5 hover:border-mono-white hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 w-full sm:w-auto text-center flex items-center justify-center space-x-2"
+              >
+                <span>Go to Dashboard</span>
+                <svg
+                  className="w-5 h-5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                  <polyline points="12 5 19 12 12 19" />
+                </svg>
+              </Link>
             </div>
 
             {/* Sub-CTA */}
@@ -141,25 +159,38 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Editor Showcase - NEW */}
+      <EditorShowcase />
+
       {/* Social Proof Section */}
-      <section className="py-32 px-4 bg-mono-black border-b border-mono-silver/20 animate-fade-up">
+      <section className="py-24 px-4 bg-mono-black border-b border-mono-silver/20">
         <div className="container mx-auto max-w-6xl">
           {/* Creator Logos */}
-          <div className="text-center mb-16">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-center mb-16"
+          >
             <p className="font-inter text-sm text-mono-silver/60 uppercase tracking-wider mb-8">
               Trusted by Creators
             </p>
             <div className="flex flex-wrap justify-center items-center gap-12 opacity-60">
               {['Creator 1', 'Creator 2', 'Creator 3', 'Creator 4', 'Creator 5'].map((name, i) => (
-                <div
+                <motion.div
                   key={i}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  whileInView={{ opacity: 0.6, scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: i * 0.1 }}
                   className="w-32 h-16 border border-mono-silver/30 rounded flex items-center justify-center"
                 >
                   <span className="font-montserrat text-xs text-mono-silver">{name}</span>
-                </div>
+                </motion.div>
               ))}
             </div>
-          </div>
+          </motion.div>
 
           {/* Mini Stat */}
           <div className="text-center mb-16 animate-fade-up">
@@ -312,10 +343,16 @@ export default function Home() {
       </section>
 
       {/* Pricing Preview */}
-      <section className="py-40 px-4 bg-mono-black border-b border-mono-silver/20 animate-fade-up">
+      <section className="py-32 px-4 bg-mono-black border-b border-mono-silver/20">
         <div className="container mx-auto max-w-6xl">
           {/* Beta Sticker */}
-          <div className="text-center mb-12 animate-fade-up">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-center mb-12"
+          >
             <div className="inline-block bg-mono-white text-mono-black px-6 py-3 rounded-lg mb-8">
               <p className="font-montserrat font-bold">
                 🔥 Beta Launch — 50% off for first 500 creators
@@ -325,7 +362,7 @@ export default function Home() {
             <p className="font-inter text-lg text-mono-silver max-w-2xl mx-auto">
               Start free, upgrade when you&apos;re ready
             </p>
-          </div>
+          </motion.div>
 
           {/* 3-Tier Pricing */}
           <div className="grid md:grid-cols-3 gap-8">
@@ -378,8 +415,8 @@ export default function Home() {
               <div
                 key={i}
                 className={`border rounded-lg p-8 animate-fade-up relative transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 ${plan.popular
-                  ? 'border-mono-white bg-mono-white/5 scale-105'
-                  : 'border-mono-silver/30 bg-mono-slate/30 hover:border-mono-white'
+                    ? 'border-mono-white bg-mono-white/5 scale-105'
+                    : 'border-mono-silver/30 bg-mono-slate/30 hover:border-mono-white'
                   }`}
                 style={{ animationDelay: `${i * 0.2}s` }}
               >
@@ -418,8 +455,8 @@ export default function Home() {
                 <Link
                   href="/upload"
                   className={`block text-center font-montserrat font-semibold px-6 py-3 rounded transition-all duration-300 ${plan.popular
-                    ? 'bg-mono-white text-mono-black hover:bg-mono-silver'
-                    : 'border-2 border-mono-white text-mono-white hover:bg-mono-white hover:text-mono-black'
+                      ? 'bg-mono-white text-mono-black hover:bg-mono-silver'
+                      : 'border-2 border-mono-white text-mono-white hover:bg-mono-white hover:text-mono-black'
                     }`}
                 >
                   {plan.cta}
@@ -573,8 +610,11 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Testimonials - NEW */}
+      <Testimonials />
+
       {/* Manifesto Section */}
-      <section className="py-64 px-4 bg-mono-black border-b border-mono-silver/20 animate-fade-up">
+      <section className="py-48 px-4 bg-mono-black border-b border-mono-silver/20 animate-fade-up">
         <div className="container mx-auto max-w-4xl">
           <div className="text-center space-y-8 animate-[fadeIn_2s_ease-in]">
             <h2 className="font-montserrat font-bold text-3xl md:text-5xl leading-tight">

@@ -19,6 +19,7 @@ export default function ProjectDetailsPage() {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const videoContainerRef = useRef<HTMLDivElement>(null);
 
   // Load project
   useEffect(() => {
@@ -39,16 +40,6 @@ export default function ProjectDetailsPage() {
       return () => clearInterval(interval);
     }
   }, [projectId, router, project?.status]);
-
-  // Handle clip selection
-  useEffect(() => {
-    if (videoRef.current && project?.clips?.[selectedClipIndex]) {
-      videoRef.current.pause();
-      setIsPlaying(false);
-      videoRef.current.load();
-      videoRef.current.currentTime = project.clips[selectedClipIndex].startTime || 0;
-    }
-  }, [selectedClipIndex, project?.clips]);
 
   if (!project) {
     return (
@@ -81,34 +72,33 @@ export default function ProjectDetailsPage() {
     }
   };
 
-  const handleTimeUpdate = () => {
-    if (videoRef.current && project.clips) {
-      setCurrentTime(videoRef.current.currentTime);
+  const handleClipSelect = (index: number) => {
+    setSelectedClipIndex(index);
+    if (videoRef.current && project?.clips?.[index]) {
+      const clip = project.clips[index];
+      videoRef.current.currentTime = clip.startTime;
+      videoRef.current.pause();
+      setIsPlaying(false);
+    }
+  };
 
-      const currentClip = project.clips[selectedClipIndex];
-      if (currentClip.endTime && videoRef.current.currentTime >= currentClip.endTime) {
-        videoRef.current.currentTime = currentClip.startTime || 0;
-        videoRef.current.pause();
-        setIsPlaying(false);
-      }
+  const handleTimeUpdate = () => {
+    if (videoRef.current) {
+      setCurrentTime(videoRef.current.currentTime);
     }
   };
 
   const handleLoadedMetadata = () => {
-    if (videoRef.current && project.clips) {
-      const currentClip = project.clips[selectedClipIndex];
-      setDuration(currentClip.endTime - currentClip.startTime);
+    if (videoRef.current) {
+      setDuration(videoRef.current.duration);
     }
   };
 
-  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (videoRef.current && project.clips) {
-      const rect = e.currentTarget.getBoundingClientRect();
-      const pos = (e.clientX - rect.left) / rect.width;
-      const currentClip = project.clips[selectedClipIndex];
-      const clipDuration = currentClip.endTime - currentClip.startTime;
-      const newTime = currentClip.startTime + pos * clipDuration;
-      videoRef.current.currentTime = newTime;
+  const handleFullscreen = () => {
+    if (videoRef.current) {
+      if (videoRef.current.requestFullscreen) {
+        videoRef.current.requestFullscreen();
+      }
     }
   };
 
@@ -117,6 +107,8 @@ export default function ProjectDetailsPage() {
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
+
+  const selectedClip = project?.clips?.[selectedClipIndex];
 
   const handleExportAll = async () => {
     if (!project || !project.clips || project.clips.length === 0) return;
@@ -157,13 +149,6 @@ export default function ProjectDetailsPage() {
       router.push('/dashboard');
     }
   };
-
-  const currentClip = project.clips?.[selectedClipIndex];
-  const progress =
-    duration > 0 && currentClip
-      ? ((currentTime - currentClip.startTime) / (currentClip.endTime - currentClip.startTime)) *
-        100
-      : 0;
 
   // Processing state
   if (project.status === 'processing') {
@@ -296,22 +281,21 @@ export default function ProjectDetailsPage() {
               <div
                 key={clip.id}
                 className={`
-                  w-full p-4 border rounded-lg transition-all duration-300
-                  ${
-                    selectedClipIndex === index
-                      ? 'border-mono-white bg-mono-white/5'
-                      : 'border-mono-silver/30'
+                  w-full p-4 border rounded-lg transition-all duration-300 cursor-pointer
+                  ${selectedClipIndex === index
+                    ? 'border-mono-white bg-mono-white/5 shadow-lg'
+                    : 'border-mono-silver/30 hover:border-mono-white/50'
                   }
                 `}
               >
-                <button
-                  onClick={() => setSelectedClipIndex(index)}
-                  className="w-full text-left mb-3"
-                >
+                <button onClick={() => handleClipSelect(index)} className="w-full text-left mb-3">
                   <div className="flex items-start justify-between mb-2">
                     <h3 className="font-montserrat font-semibold text-base">{clip.title}</h3>
                     <div className="flex items-center space-x-2">
-                      <div className="w-2 h-2 bg-mono-white rounded-full" />
+                      <div
+                        className={`w-2 h-2 rounded-full ${selectedClipIndex === index ? 'bg-mono-white animate-pulse' : 'bg-mono-white'
+                          }`}
+                      />
                       <span className="font-inter text-sm">{clip.score}</span>
                     </div>
                   </div>
@@ -339,25 +323,41 @@ export default function ProjectDetailsPage() {
           </div>
         </aside>
 
-        {/* Main Content - Video Player + Analysis */}
+        {/* Main Content - Video Player */}
         <main className="space-y-6">
           {/* Video Player */}
-          <div className="aspect-video bg-mono-shadow border border-mono-silver/30 rounded-lg relative overflow-hidden group">
+          <div
+            ref={videoContainerRef}
+            className="aspect-video bg-mono-shadow border border-mono-silver/30 rounded-lg relative overflow-hidden group"
+          >
+            {/* Blurred Background */}
+            <div className="absolute inset-0 overflow-hidden">
+              <video
+                className="w-full h-full object-cover scale-110 blur-2xl opacity-30"
+                src={project.videoUrl}
+                muted
+                loop
+                autoPlay
+              />
+            </div>
+
+            {/* Main Video */}
             <video
               ref={videoRef}
-              className="w-full h-full object-contain"
+              className="absolute inset-0 w-full h-full object-contain z-10"
+              src={project.videoUrl}
               onTimeUpdate={handleTimeUpdate}
               onLoadedMetadata={handleLoadedMetadata}
               onEnded={() => setIsPlaying(false)}
-            >
-              <source src={currentClip?.videoUrl} type="video/mp4" />
-            </video>
+              onPlay={() => setIsPlaying(true)}
+              onPause={() => setIsPlaying(false)}
+            />
 
             {/* Play/Pause Overlay */}
             {!isPlaying && (
               <button
                 onClick={togglePlayPause}
-                className="absolute inset-0 flex items-center justify-center bg-mono-black/50 backdrop-blur-sm transition-opacity"
+                className="absolute inset-0 z-20 flex items-center justify-center bg-mono-black/40 backdrop-blur-sm transition-opacity"
               >
                 <div className="w-20 h-20 rounded-full bg-mono-white/10 border-2 border-mono-white flex items-center justify-center hover:bg-mono-white/20 transition-all">
                   <svg
@@ -372,20 +372,23 @@ export default function ProjectDetailsPage() {
               </button>
             )}
 
-            {/* Controls */}
-            <div className="absolute bottom-0 inset-x-0 p-6 bg-gradient-to-t from-mono-black via-mono-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              <div
-                className="relative w-full h-2 bg-mono-silver/20 rounded-full cursor-pointer mb-4"
-                onClick={handleSeek}
-              >
+            {/* Video Controls */}
+            <div className="absolute bottom-0 inset-x-0 z-30 p-6 bg-gradient-to-t from-mono-black via-mono-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              {/* Progress Bar */}
+              <div className="relative w-full h-1 bg-mono-silver/20 rounded-full cursor-pointer mb-4 group/scrubber">
                 <div
                   className="absolute inset-y-0 left-0 bg-mono-white rounded-full"
-                  style={{ width: `${progress}%` }}
+                  style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
+                />
+                <div
+                  className="absolute top-1/2 -translate-y-1/2 -ml-2 w-4 h-4 rounded-full bg-mono-white shadow-[0_0_8px_rgba(255,255,255,0.6)] opacity-0 group-hover/scrubber:opacity-100 transition-opacity"
+                  style={{ left: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
                 />
               </div>
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
+                  {/* Play/Pause Button */}
                   <button
                     onClick={togglePlayPause}
                     className="w-10 h-10 rounded-full border border-mono-silver/30 flex items-center justify-center hover:bg-mono-white/10 transition-colors"
@@ -401,41 +404,64 @@ export default function ProjectDetailsPage() {
                       </svg>
                     )}
                   </button>
+
+                  {/* Time Display */}
                   <span className="font-inter text-sm text-mono-silver">
-                    {formatTime(currentTime)} / {formatTime(currentClip?.endTime || 0)}
+                    {formatTime(currentTime)} / {formatTime(duration)}
                   </span>
                 </div>
 
                 <div className="flex items-center space-x-4">
-                  <span className="font-montserrat text-sm text-mono-silver">
-                    {currentClip?.title}
-                  </span>
+                  {/* Current Clip Title */}
+                  {selectedClip && (
+                    <span className="font-montserrat text-sm text-mono-silver">
+                      {selectedClip.title}
+                    </span>
+                  )}
+
+                  {/* Fullscreen Button */}
+                  <button
+                    onClick={handleFullscreen}
+                    className="w-8 h-8 flex items-center justify-center hover:bg-mono-white/10 rounded transition-colors"
+                    title="Watch Full Video (Fullscreen)"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+                    </svg>
+                  </button>
                 </div>
               </div>
             </div>
           </div>
 
           {/* AI Analysis Panel */}
-          {currentClip && (
+          {selectedClip && (
             <div className="border border-mono-silver/30 rounded-lg p-8 bg-mono-slate/30">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="font-montserrat font-semibold text-xl">AI Analysis</h3>
                 <div className="flex items-center space-x-2">
                   <div className="w-2 h-2 bg-mono-white rounded-full animate-pulse" />
                   <span className="font-inter text-xs text-mono-silver uppercase tracking-wider">
-                    AI Detected
+                    {selectedClip.title}
                   </span>
                 </div>
               </div>
 
+              {/* AI Metrics Grid */}
               <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
                 {[
-                  { label: 'Emotional Score', value: currentClip.analysis.emotionalScore },
-                  { label: 'Scene Tension', value: currentClip.analysis.sceneTension },
-                  { label: 'Audio Energy', value: currentClip.analysis.audioEnergy },
-                  { label: 'Motion Score', value: currentClip.analysis.motionScore },
-                  { label: 'Shot Stability', value: currentClip.analysis.shotStability },
-                  { label: 'Cinematic Rhythm', value: currentClip.analysis.cinematicRhythm },
+                  { label: 'Emotional Score', value: selectedClip.analysis.emotionalScore },
+                  { label: 'Scene Tension', value: selectedClip.analysis.sceneTension },
+                  { label: 'Audio Energy', value: selectedClip.analysis.audioEnergy },
+                  { label: 'Motion Score', value: selectedClip.analysis.motionScore },
+                  { label: 'Shot Stability', value: selectedClip.analysis.shotStability },
+                  { label: 'Cinematic Rhythm', value: selectedClip.analysis.cinematicRhythm },
                 ].map((metric) => (
                   <div key={metric.label} className="space-y-2">
                     <p className="font-inter text-xs text-mono-silver/70 uppercase tracking-wider">
@@ -446,7 +472,10 @@ export default function ProjectDetailsPage() {
                       <span className="font-inter text-sm text-mono-silver">/100</span>
                     </div>
                     <div className="h-1 bg-mono-silver/20 rounded-full overflow-hidden">
-                      <div className="h-full bg-mono-white" style={{ width: `${metric.value}%` }} />
+                      <div
+                        className="h-full bg-mono-white transition-all duration-500"
+                        style={{ width: `${metric.value}%` }}
+                      />
                     </div>
                   </div>
                 ))}
@@ -454,30 +483,31 @@ export default function ProjectDetailsPage() {
 
               <div className="h-px bg-mono-silver/20 my-8" />
 
+              {/* Secondary Metrics */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                 <div>
                   <p className="font-inter text-xs text-mono-silver/70 uppercase tracking-wider mb-2">
                     Duration
                   </p>
-                  <p className="font-montserrat text-xl">{currentClip.duration}s</p>
+                  <p className="font-montserrat text-xl">{selectedClip.duration}s</p>
                 </div>
                 <div>
                   <p className="font-inter text-xs text-mono-silver/70 uppercase tracking-wider mb-2">
                     Pacing
                   </p>
-                  <p className="font-montserrat text-xl">{currentClip.analysis.pacing}</p>
+                  <p className="font-montserrat text-xl">{selectedClip.analysis.pacing}</p>
                 </div>
                 <div>
                   <p className="font-inter text-xs text-mono-silver/70 uppercase tracking-wider mb-2">
                     Lighting
                   </p>
-                  <p className="font-montserrat text-xl">{currentClip.analysis.lighting}</p>
+                  <p className="font-montserrat text-xl">{selectedClip.analysis.lighting}</p>
                 </div>
                 <div>
                   <p className="font-inter text-xs text-mono-silver/70 uppercase tracking-wider mb-2">
                     Color Grade
                   </p>
-                  <p className="font-montserrat text-xl">{currentClip.analysis.colorGrade}</p>
+                  <p className="font-montserrat text-xl">{selectedClip.analysis.colorGrade}</p>
                 </div>
               </div>
             </div>

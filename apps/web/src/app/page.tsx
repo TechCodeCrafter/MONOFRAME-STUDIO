@@ -2,14 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { EditorShowcase, Testimonials } from '@/components/home';
+import { createOrGetDemoProject } from '@/lib/projectStore';
 
 export default function Home() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [scrollY, setScrollY] = useState(0);
+  const [isLaunchingDemo, setIsLaunchingDemo] = useState(false);
 
   // Parallax scroll effect
   useEffect(() => {
@@ -51,6 +55,29 @@ export default function Home() {
       setEmail('');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleLaunchDemo = () => {
+    try {
+      setIsLaunchingDemo(true);
+
+      // Create or get the demo project
+      const demoProject = createOrGetDemoProject();
+
+      // Navigate to the first clip in the demo project
+      if (demoProject.clips && demoProject.clips.length > 0) {
+        const firstClip = demoProject.clips[0];
+        router.push(`/dashboard/${demoProject.id}/editor/${firstClip.id}`);
+      } else {
+        console.error('Demo project has no clips');
+        alert('Failed to launch demo. Please try again.');
+        setIsLaunchingDemo(false);
+      }
+    } catch (error) {
+      console.error('Error launching demo:', error);
+      alert('Failed to launch demo. Please try again.');
+      setIsLaunchingDemo(false);
     }
   };
 
@@ -122,19 +149,49 @@ export default function Home() {
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-12">
+              {/* Live Editor Demo Button - Primary */}
+              <button
+                onClick={handleLaunchDemo}
+                disabled={isLaunchingDemo}
+                className="bg-mono-white text-mono-black font-montserrat font-semibold px-12 py-5 text-lg rounded hover:bg-mono-silver hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 w-full sm:w-auto text-center btn-pulse disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 flex items-center justify-center space-x-2"
+              >
+                {isLaunchingDemo ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-mono-black/20 border-t-mono-black rounded-full animate-spin" />
+                    <span>Launching Demo...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg
+                      className="w-5 h-5"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <polygon points="5,3 19,12 5,21" fill="currentColor" stroke="none" />
+                    </svg>
+                    <span>Open Live Editor Demo</span>
+                  </>
+                )}
+              </button>
+
+              {/* Upload Button - Secondary */}
               <Link
                 href="/upload"
-                className="bg-mono-white text-mono-black font-montserrat font-semibold px-12 py-5 text-lg rounded hover:bg-mono-silver hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 w-full sm:w-auto text-center btn-pulse"
+                className="border border-mono-white/30 text-mono-white font-montserrat font-semibold px-12 py-5 text-lg rounded hover:bg-mono-white/5 hover:border-mono-white hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 w-full sm:w-auto text-center"
               >
-                Upload Your First Video
+                Upload Your Video
               </Link>
+
+              {/* Dashboard Link - Tertiary */}
               <Link
                 href="/dashboard"
-                className="border border-mono-white/30 text-mono-white font-montserrat font-semibold px-12 py-5 text-lg rounded hover:bg-mono-white/5 hover:border-mono-white hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 w-full sm:w-auto text-center flex items-center justify-center space-x-2"
+                className="text-mono-silver hover:text-mono-white font-inter text-sm transition-colors flex items-center space-x-1"
               >
                 <span>Go to Dashboard</span>
                 <svg
-                  className="w-5 h-5"
+                  className="w-4 h-4"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -415,8 +472,8 @@ export default function Home() {
               <div
                 key={i}
                 className={`border rounded-lg p-8 animate-fade-up relative transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 ${plan.popular
-                    ? 'border-mono-white bg-mono-white/5 scale-105'
-                    : 'border-mono-silver/30 bg-mono-slate/30 hover:border-mono-white'
+                  ? 'border-mono-white bg-mono-white/5 scale-105'
+                  : 'border-mono-silver/30 bg-mono-slate/30 hover:border-mono-white'
                   }`}
                 style={{ animationDelay: `${i * 0.2}s` }}
               >
@@ -455,8 +512,8 @@ export default function Home() {
                 <Link
                   href="/upload"
                   className={`block text-center font-montserrat font-semibold px-6 py-3 rounded transition-all duration-300 ${plan.popular
-                      ? 'bg-mono-white text-mono-black hover:bg-mono-silver'
-                      : 'border-2 border-mono-white text-mono-white hover:bg-mono-white hover:text-mono-black'
+                    ? 'bg-mono-white text-mono-black hover:bg-mono-silver'
+                    : 'border-2 border-mono-white text-mono-white hover:bg-mono-white hover:text-mono-black'
                     }`}
                 >
                   {plan.cta}

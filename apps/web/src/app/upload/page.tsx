@@ -2,10 +2,15 @@
 
 import { useState, useRef, DragEvent } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { createProject, simulateProcessing, updateProject } from '@/lib/projectStore';
 
 export default function UploadPage() {
+    const router = useRouter();
     const [file, setFile] = useState<File | null>(null);
     const [isDragging, setIsDragging] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [processingStatus, setProcessingStatus] = useState('');
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const acceptedFormats = ['.mp4', '.mov', '.avi'];
@@ -76,6 +81,59 @@ export default function UploadPage() {
         setFile(null);
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
+        }
+    };
+
+    const handleUploadAndProcess = async () => {
+        if (!file) return;
+
+        setIsProcessing(true);
+        setProcessingStatus('Reading video file...');
+
+        try {
+            // Step 1: Convert file to base64 for localStorage persistence
+            const base64Video = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const result = reader.result as string;
+                    resolve(result);
+                };
+                reader.onerror = () => reject(reader.error);
+                reader.readAsDataURL(file);
+            });
+
+            // Step 2: Extract file name (without extension) as project title
+            const fileName = file.name.replace(/\.[^/.]+$/, '');
+            const projectTitle = fileName || 'Untitled Project';
+
+            // Step 3: Create project with base64 video
+            setProcessingStatus('Creating project...');
+            const project = createProject({
+                title: projectTitle,
+                description: `Uploaded ${file.name}`,
+                videoUrl: base64Video,
+            });
+
+            // Step 4: Set status to processing
+            setProcessingStatus('Initializing AI analysis...');
+            updateProject(project.id, {
+                status: 'processing',
+            });
+
+            // Step 5: Run AI processing simulation (with callback)
+            setProcessingStatus('Analyzing video with AI...');
+            simulateProcessing(project.id, (completedProject) => {
+                // Step 6: Redirect to project details after processing
+                setProcessingStatus('Complete! Redirecting...');
+                setTimeout(() => {
+                    router.push(`/dashboard/${completedProject.id}`);
+                }, 500);
+            });
+        } catch (error) {
+            console.error('Upload and processing failed:', error);
+            alert('Failed to process video. Please try again.');
+            setIsProcessing(false);
+            setProcessingStatus('');
         }
     };
 
@@ -240,24 +298,55 @@ export default function UploadPage() {
                         )}
                     </div>
 
-                    {/* Continue Button */}
+                    {/* Upload & Generate Clips Button */}
                     <div className="mt-8 text-center animate-fade-up animation-delay-600">
-                        <Link
-                            href={file ? '/processing' : '#'}
+                        <button
+                            onClick={handleUploadAndProcess}
+                            disabled={!file || isProcessing}
                             className={`
-                inline-block font-montserrat font-semibold text-lg px-12 py-4 rounded
+                font-montserrat font-semibold text-lg px-12 py-4 rounded
                 transition-all duration-300
-                ${file
-                                    ? 'bg-mono-white text-mono-black hover:bg-mono-silver cursor-pointer'
-                                    : 'bg-mono-slate text-mono-silver cursor-not-allowed pointer-events-none'
+                ${file && !isProcessing
+                                    ? 'bg-mono-white text-mono-black hover:bg-mono-silver hover:shadow-lg hover:-translate-y-1 cursor-pointer'
+                                    : 'bg-mono-slate text-mono-silver cursor-not-allowed'
                                 }
               `}
                         >
-                            Continue to Processing
-                        </Link>
+                            {isProcessing ? 'Processing...' : 'Upload & Generate Clips'}
+                        </button>
                     </div>
                 </div>
             </div>
+
+            {/* Processing Overlay */}
+            {isProcessing && (
+                <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center animate-fade-in">
+                    {/* Cinematic Vignette */}
+                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_20%,rgba(0,0,0,0.8)_100%)]" />
+
+                    {/* Processing Content */}
+                    <div className="relative z-10 text-center max-w-md px-6">
+                        {/* Spinner */}
+                        <div className="w-20 h-20 mx-auto mb-8 relative">
+                            <div className="absolute inset-0 border-4 border-mono-silver/20 rounded-full"></div>
+                            <div className="absolute inset-0 border-4 border-mono-white border-t-transparent rounded-full animate-spin"></div>
+                            {/* Inner glow */}
+                            <div className="absolute inset-2 bg-mono-white/5 rounded-full blur-md"></div>
+                        </div>
+
+                        {/* Status Message */}
+                        <h2 className="font-montserrat font-bold text-3xl mb-4 text-mono-white">
+                            Processing Your Video
+                        </h2>
+                        <p className="font-inter text-lg text-mono-silver mb-2">
+                            {processingStatus}
+                        </p>
+                        <p className="font-inter text-sm text-mono-silver/60">
+                            This may take a moment...
+                        </p>
+                    </div>
+                </div>
+            )}
         </main>
     );
 }

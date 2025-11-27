@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { getProjectById, deleteProject, type Project } from '@/lib/projectStore';
 import { exportClipsAsZip } from '@/lib/exporter';
 import { useExportOverlay } from '@/components/export';
+import { useFullscreen } from '@/hooks/useFullscreen';
+import { EmotionGraph } from '@/components/emotion';
 
 export default function ProjectDetailsPage() {
   const params = useParams();
@@ -18,8 +20,18 @@ export default function ProjectDetailsPage() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [isMounted, setIsMounted] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const videoContainerRef = useRef<HTMLDivElement>(null);
+  const clipListRef = useRef<HTMLDivElement>(null);
+
+  // Fullscreen hook
+  const { isFullscreen, toggleFullscreen } = useFullscreen(videoContainerRef);
+
+  // Prevent hydration errors
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Load project
   useEffect(() => {
@@ -72,15 +84,21 @@ export default function ProjectDetailsPage() {
     }
   };
 
-  const handleClipSelect = (index: number) => {
+  const handleClipSelect = useCallback((index: number) => {
     setSelectedClipIndex(index);
     if (videoRef.current && project?.clips?.[index]) {
       const clip = project.clips[index];
       videoRef.current.currentTime = clip.startTime;
       videoRef.current.pause();
       setIsPlaying(false);
+
+      // Smooth scroll to selected clip in sidebar
+      const clipElement = document.querySelector(`[data-clip-index="${index}"]`);
+      if (clipElement && clipListRef.current) {
+        clipElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
     }
-  };
+  }, [project?.clips]);
 
   const handleTimeUpdate = () => {
     if (videoRef.current) {
@@ -94,19 +112,34 @@ export default function ProjectDetailsPage() {
     }
   };
 
-  const handleFullscreen = () => {
-    if (videoRef.current) {
-      if (videoRef.current.requestFullscreen) {
-        videoRef.current.requestFullscreen();
-      }
-    }
-  };
+  const handleFullscreen = useCallback(() => {
+    toggleFullscreen();
+  }, [toggleFullscreen]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Cmd+F / Ctrl+F for fullscreen
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'f' || e.key === 'F')) {
+        e.preventDefault();
+        toggleFullscreen();
+      }
+      // Space for play/pause
+      if (e.code === 'Space' && e.target === document.body) {
+        e.preventDefault();
+        togglePlayPause();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [togglePlayPause, toggleFullscreen]);
 
   const selectedClip = project?.clips?.[selectedClipIndex];
 
@@ -276,10 +309,11 @@ export default function ProjectDetailsPage() {
             <span className="text-sm text-mono-silver">{project.clips.length}</span>
           </h2>
 
-          <div className="space-y-3">
+          <div ref={clipListRef} className="space-y-3 max-h-[calc(100vh-250px)] overflow-y-auto pr-2">
             {project.clips.map((clip, index) => (
               <div
                 key={clip.id}
+                data-clip-index={index}
                 className={`
                   w-full p-4 border rounded-lg transition-all duration-300 cursor-pointer
                   ${selectedClipIndex === index
@@ -329,32 +363,39 @@ export default function ProjectDetailsPage() {
           <div
             ref={videoContainerRef}
             className="aspect-video bg-mono-shadow border border-mono-silver/30 rounded-lg relative overflow-hidden group"
+            suppressHydrationWarning
           >
             {/* Blurred Background */}
-            <div className="absolute inset-0 overflow-hidden">
-              <video
-                className="w-full h-full object-cover scale-110 blur-2xl opacity-30"
-                src={project.videoUrl}
-                muted
-                loop
-                autoPlay
-              />
-            </div>
+            {isMounted && (
+              <div className="absolute inset-0 overflow-hidden">
+                <video
+                  className="w-full h-full object-cover scale-110 blur-2xl opacity-30"
+                  src={project.videoUrl}
+                  muted
+                  loop
+                  autoPlay
+                  playsInline
+                />
+              </div>
+            )}
 
             {/* Main Video */}
-            <video
-              ref={videoRef}
-              className="absolute inset-0 w-full h-full object-contain z-10"
-              src={project.videoUrl}
-              onTimeUpdate={handleTimeUpdate}
-              onLoadedMetadata={handleLoadedMetadata}
-              onEnded={() => setIsPlaying(false)}
-              onPlay={() => setIsPlaying(true)}
-              onPause={() => setIsPlaying(false)}
-            />
+            {isMounted && (
+              <video
+                ref={videoRef}
+                className="absolute inset-0 w-full h-full object-contain z-10 cursor-pointer"
+                src={project.videoUrl}
+                onClick={togglePlayPause}
+                onTimeUpdate={handleTimeUpdate}
+                onLoadedMetadata={handleLoadedMetadata}
+                onEnded={() => setIsPlaying(false)}
+                onPlay={() => setIsPlaying(true)}
+                onPause={() => setIsPlaying(false)}
+              />
+            )}
 
             {/* Play/Pause Overlay */}
-            {!isPlaying && (
+            {isMounted && !isPlaying && (
               <button
                 onClick={togglePlayPause}
                 className="absolute inset-0 z-20 flex items-center justify-center bg-mono-black/40 backdrop-blur-sm transition-opacity"
@@ -373,72 +414,170 @@ export default function ProjectDetailsPage() {
             )}
 
             {/* Video Controls */}
-            <div className="absolute bottom-0 inset-x-0 z-30 p-6 bg-gradient-to-t from-mono-black via-mono-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              {/* Progress Bar */}
-              <div className="relative w-full h-1 bg-mono-silver/20 rounded-full cursor-pointer mb-4 group/scrubber">
-                <div
-                  className="absolute inset-y-0 left-0 bg-mono-white rounded-full"
-                  style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
-                />
-                <div
-                  className="absolute top-1/2 -translate-y-1/2 -ml-2 w-4 h-4 rounded-full bg-mono-white shadow-[0_0_8px_rgba(255,255,255,0.6)] opacity-0 group-hover/scrubber:opacity-100 transition-opacity"
-                  style={{ left: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  {/* Play/Pause Button */}
-                  <button
-                    onClick={togglePlayPause}
-                    className="w-10 h-10 rounded-full border border-mono-silver/30 flex items-center justify-center hover:bg-mono-white/10 transition-colors"
-                  >
-                    {isPlaying ? (
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                        <rect x="6" y="4" width="4" height="16" />
-                        <rect x="14" y="4" width="4" height="16" />
-                      </svg>
-                    ) : (
-                      <svg className="w-4 h-4 ml-0.5" viewBox="0 0 24 24" fill="currentColor">
-                        <polygon points="5,3 19,12 5,21" />
-                      </svg>
-                    )}
-                  </button>
-
-                  {/* Time Display */}
-                  <span className="font-inter text-sm text-mono-silver">
-                    {formatTime(currentTime)} / {formatTime(duration)}
-                  </span>
+            {isMounted && (
+              <div className="absolute bottom-0 inset-x-0 z-30 p-6 bg-gradient-to-t from-mono-black via-mono-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                {/* Progress Bar */}
+                <div className="relative w-full h-1 bg-mono-silver/20 rounded-full cursor-pointer mb-4 group/scrubber">
+                  <div
+                    className="absolute inset-y-0 left-0 bg-mono-white rounded-full"
+                    style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
+                  />
+                  <div
+                    className="absolute top-1/2 -translate-y-1/2 -ml-2 w-4 h-4 rounded-full bg-mono-white shadow-[0_0_8px_rgba(255,255,255,0.6)] opacity-0 group-hover/scrubber:opacity-100 transition-opacity"
+                    style={{ left: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
+                  />
                 </div>
 
-                <div className="flex items-center space-x-4">
-                  {/* Current Clip Title */}
-                  {selectedClip && (
-                    <span className="font-montserrat text-sm text-mono-silver">
-                      {selectedClip.title}
-                    </span>
-                  )}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    {/* Play/Pause Button */}
+                    <button
+                      onClick={togglePlayPause}
+                      className="w-10 h-10 rounded-full border border-mono-silver/30 flex items-center justify-center hover:bg-mono-white/10 transition-colors"
+                    >
+                      {isPlaying ? (
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                          <rect x="6" y="4" width="4" height="16" />
+                          <rect x="14" y="4" width="4" height="16" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4 ml-0.5" viewBox="0 0 24 24" fill="currentColor">
+                          <polygon points="5,3 19,12 5,21" />
+                        </svg>
+                      )}
+                    </button>
 
-                  {/* Fullscreen Button */}
+                    {/* Time Display */}
+                    <span className="font-inter text-sm text-mono-silver">
+                      {formatTime(currentTime)} / {formatTime(duration)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center space-x-4">
+                    {/* Current Clip Title */}
+                    {selectedClip && (
+                      <span className="font-montserrat text-sm text-mono-silver">
+                        {selectedClip.title}
+                      </span>
+                    )}
+
+                    {/* Fullscreen Button */}
+                    <button
+                      onClick={handleFullscreen}
+                      className="w-8 h-8 flex items-center justify-center hover:bg-mono-white/10 rounded transition-colors"
+                      title="Watch Full Video (Fullscreen)"
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Fullscreen Overlay Controls */}
+            {isMounted && isFullscreen && (
+              <div className="absolute inset-0 z-40 flex flex-col justify-between bg-gradient-to-b from-mono-black/60 via-transparent to-mono-black/60 opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                {/* Top Bar */}
+                <div className="p-6 pointer-events-auto">
                   <button
-                    onClick={handleFullscreen}
-                    className="w-8 h-8 flex items-center justify-center hover:bg-mono-white/10 rounded transition-colors"
-                    title="Watch Full Video (Fullscreen)"
+                    onClick={toggleFullscreen}
+                    className="flex items-center space-x-2 text-mono-white hover:text-mono-silver transition-colors"
                   >
                     <svg
-                      className="w-4 h-4"
+                      className="w-5 h-5"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
                       strokeWidth="2"
                     >
-                      <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+                      <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3" />
                     </svg>
+                    <span className="font-inter text-sm">Exit Fullscreen (Esc)</span>
                   </button>
                 </div>
+
+                {/* Bottom Info */}
+                <div className="p-6 pointer-events-auto">
+                  <p className="font-montserrat text-lg text-mono-white">
+                    {project.title} {selectedClip && `· ${selectedClip.title}`}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Mini Emotion Curve */}
+          {isMounted && selectedClip && !isFullscreen && (
+            <div className="animate-fade-in">
+              <EmotionGraph
+                clip={selectedClip}
+                startTime={selectedClip.startTime}
+                endTime={selectedClip.endTime}
+                duration={selectedClip.duration}
+              />
+            </div>
+          )}
+
+          {/* Full-Width Timeline */}
+          {isMounted && !isFullscreen && (
+            <div className="border border-mono-silver/30 rounded-lg p-6 bg-mono-slate/30">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-montserrat font-semibold text-sm">Video Timeline</h3>
+                <span className="font-inter text-xs text-mono-silver">
+                  {formatTime(currentTime)} / {formatTime(duration)}
+                </span>
+              </div>
+
+              {/* Timeline Track */}
+              <div className="relative w-full h-16 bg-mono-black/50 border border-mono-silver/20 rounded overflow-hidden">
+                {/* Clip Segments */}
+                {project.clips.map((clip, index) => (
+                  <div
+                    key={clip.id}
+                    onClick={() => handleClipSelect(index)}
+                    className={`
+                      absolute inset-y-0 cursor-pointer transition-all duration-300
+                      ${selectedClipIndex === index
+                        ? 'bg-mono-white/20 border-l-2 border-r-2 border-mono-white'
+                        : 'bg-mono-white/5 hover:bg-mono-white/10'
+                      }
+                    `}
+                    style={{
+                      left: `${duration > 0 ? (clip.startTime / duration) * 100 : 0}%`,
+                      width: `${duration > 0 ? ((clip.endTime - clip.startTime) / duration) * 100 : 0}%`,
+                    }}
+                  >
+                    {/* Clip Label */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="font-inter text-[10px] text-mono-white/60 font-semibold">
+                        {index + 1}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Current Time Indicator */}
+                <div
+                  className="absolute inset-y-0 w-0.5 bg-mono-white shadow-[0_0_8px_rgba(255,255,255,0.8)] pointer-events-none z-10"
+                  style={{ left: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
+                />
+              </div>
+
+              {/* Timeline Labels */}
+              <div className="flex justify-between mt-2">
+                <span className="font-inter text-[10px] text-mono-silver/60">0:00</span>
+                <span className="font-inter text-[10px] text-mono-silver/60">{formatTime(duration)}</span>
               </div>
             </div>
-          </div>
+          )}
 
           {/* AI Analysis Panel */}
           {selectedClip && (

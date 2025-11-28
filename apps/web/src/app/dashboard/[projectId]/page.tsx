@@ -199,8 +199,8 @@ export default function ProjectDetailsPage() {
             <line x1="8" y1="32" x2="56" y2="32" />
           </svg>
 
-          <h1 className="font-montserrat font-bold text-4xl mb-4">Processing Your Video</h1>
-          <p className="font-inter text-lg text-mono-silver mb-8">
+          <h1 className="text-2xl font-semibold tracking-tight mb-2">Processing Your Video</h1>
+          <p className="font-inter text-lg text-mono-silver mt-8 mb-6">
             AI is analyzing emotional peaks and creating cinematic highlights...
           </p>
 
@@ -237,8 +237,8 @@ export default function ProjectDetailsPage() {
     return (
       <div className="min-h-screen bg-mono-black flex items-center justify-center px-4">
         <div className="text-center max-w-lg">
-          <h1 className="font-montserrat font-bold text-4xl mb-4">Project Uploaded</h1>
-          <p className="font-inter text-lg text-mono-silver mb-8">
+          <h1 className="text-2xl font-semibold tracking-tight mb-2">Project Uploaded</h1>
+          <p className="font-inter text-lg text-mono-silver mt-8 mb-6">
             This project is waiting to be processed. Start processing to generate clips.
           </p>
           <button onClick={() => router.push('/dashboard')} className="btn-primary">
@@ -271,7 +271,7 @@ export default function ProjectDetailsPage() {
               </svg>
             </button>
             <div>
-              <h1 className="font-montserrat font-bold text-2xl text-mono-white">
+              <h1 className="text-2xl font-semibold tracking-tight">
                 {project.title}
               </h1>
               {project.description && (
@@ -304,7 +304,7 @@ export default function ProjectDetailsPage() {
       <div className="grid lg:grid-cols-[350px_1fr] gap-6 p-8">
         {/* Left Sidebar - Clips List */}
         <aside className="space-y-4">
-          <h2 className="font-montserrat font-semibold text-lg mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-medium text-white/70 mb-6 flex items-center justify-between">
             <span>Generated Clips</span>
             <span className="text-sm text-mono-silver">{project.clips.length}</span>
           </h2>
@@ -362,7 +362,7 @@ export default function ProjectDetailsPage() {
           {/* Video Player */}
           <div
             ref={videoContainerRef}
-            className="aspect-video bg-mono-shadow border border-mono-silver/30 rounded-lg relative overflow-hidden group"
+            className="aspect-video bg-mono-shadow border border-mono-silver/30 rounded-xl relative overflow-hidden group"
             suppressHydrationWarning
           >
             {/* Blurred Background */}
@@ -379,11 +379,14 @@ export default function ProjectDetailsPage() {
               </div>
             )}
 
+            {/* Vignette Overlay */}
+            <div className="absolute inset-0 bg-gradient-to-b from-black/40 to-black/70 rounded-xl pointer-events-none z-[5]" />
+
             {/* Main Video */}
             {isMounted && (
               <video
                 ref={videoRef}
-                className="absolute inset-0 w-full h-full object-contain z-10 cursor-pointer"
+                className="absolute inset-0 w-full h-full object-contain z-10 cursor-pointer animate-fadeIn"
                 src={project.videoUrl}
                 onClick={togglePlayPause}
                 onTimeUpdate={handleTimeUpdate}
@@ -400,7 +403,7 @@ export default function ProjectDetailsPage() {
                 onClick={togglePlayPause}
                 className="absolute inset-0 z-20 flex items-center justify-center bg-mono-black/40 backdrop-blur-sm transition-opacity"
               >
-                <div className="w-20 h-20 rounded-full bg-mono-white/10 border-2 border-mono-white flex items-center justify-center hover:bg-mono-white/20 transition-all">
+                <div className="w-20 h-20 rounded-full bg-mono-white/10 border-2 border-mono-white ring-[3px] ring-white/40 hover:ring-white/70 flex items-center justify-center hover:bg-mono-white/20 transition">
                   <svg
                     className="w-8 h-8 stroke-mono-white ml-1"
                     viewBox="0 0 24 24"
@@ -423,7 +426,7 @@ export default function ProjectDetailsPage() {
                     style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
                   />
                   <div
-                    className="absolute top-1/2 -translate-y-1/2 -ml-2 w-4 h-4 rounded-full bg-mono-white shadow-[0_0_8px_rgba(255,255,255,0.6)] opacity-0 group-hover/scrubber:opacity-100 transition-opacity"
+                    className="absolute top-1/2 -translate-y-1/2 -ml-1.5 w-3 h-3 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.6)] opacity-0 group-hover/scrubber:opacity-100 transition-opacity"
                     style={{ left: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
                   />
                 </div>
@@ -529,8 +532,8 @@ export default function ProjectDetailsPage() {
           {/* Full-Width Timeline */}
           {isMounted && !isFullscreen && (
             <div className="border border-mono-silver/30 rounded-lg p-6 bg-mono-slate/30">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-montserrat font-semibold text-sm">Video Timeline</h3>
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-medium text-white/70">Video Timeline</h3>
                 <span className="font-inter text-xs text-mono-silver">
                   {formatTime(currentTime)} / {formatTime(duration)}
                 </span>
@@ -583,7 +586,7 @@ export default function ProjectDetailsPage() {
           {selectedClip && (
             <div className="border border-mono-silver/30 rounded-lg p-8 bg-mono-slate/30">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="font-montserrat font-semibold text-xl">AI Analysis</h3>
+                <h3 className="text-lg font-medium text-white/70">AI Analysis</h3>
                 <div className="flex items-center space-x-2">
                   <div className="w-2 h-2 bg-mono-white rounded-full animate-pulse" />
                   <span className="font-inter text-xs text-mono-silver uppercase tracking-wider">

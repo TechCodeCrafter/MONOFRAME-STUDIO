@@ -518,8 +518,8 @@ export default function ClipEditorPage() {
             <line x1="15" y1="9" x2="9" y2="15" />
             <line x1="9" y1="9" x2="15" y2="15" />
           </svg>
-          <h1 className="font-montserrat font-bold text-3xl mb-4">Project Not Found</h1>
-          <p className="font-inter text-lg text-mono-silver mb-6">
+          <h1 className="text-2xl font-semibold tracking-tight mb-2">Project Not Found</h1>
+          <p className="font-inter text-lg text-mono-silver mt-8 mb-6">
             The project or clip you're looking for doesn't exist or couldn't be loaded.
           </p>
           <button
@@ -781,7 +781,7 @@ export default function ClipEditorPage() {
         {!isFullscreen && (
           <aside className="w-[350px] flex-shrink-0 border-l border-mono-silver/10 bg-mono-shadow/50 p-6 overflow-y-auto space-y-6 transition-opacity duration-150">
             <div>
-              <h3 className="font-montserrat font-semibold text-lg mb-4">Clip Info</h3>
+              <h3 className="text-lg font-medium text-white/70 mb-6">Clip Info</h3>
               <div className="space-y-3">
                 <div>
                   <label className="font-inter text-xs text-mono-silver/60 uppercase tracking-wider mb-1 block">
@@ -815,7 +815,7 @@ export default function ClipEditorPage() {
             <div className="h-px bg-mono-silver/10" />
 
             <div>
-              <h3 className="font-montserrat font-semibold text-lg mb-4">Trim Controls</h3>
+              <h3 className="text-lg font-medium text-white/70 mb-6">Trim Controls</h3>
               <div className="space-y-4">
                 <div>
                   <label className="font-inter text-xs text-mono-silver/60 uppercase tracking-wider mb-2 block">
@@ -851,7 +851,7 @@ export default function ClipEditorPage() {
             <div className="h-px bg-mono-silver/10" />
 
             <div>
-              <h3 className="font-montserrat font-semibold text-lg mb-4">AI Insights</h3>
+              <h3 className="text-lg font-medium text-white/70 mb-6">AI Insights</h3>
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-mono-black/50 border border-mono-silver/20 rounded p-3">
                   <p className="font-inter text-xs text-mono-silver/60 uppercase tracking-wider mb-1">
@@ -1045,7 +1045,7 @@ export default function ClipEditorPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-6">
-              <h3 className="font-montserrat font-bold text-xl">Keyboard Shortcuts</h3>
+              <h3 className="text-2xl font-semibold tracking-tight">Keyboard Shortcuts</h3>
               <button
                 onClick={() => setShowShortcuts(false)}
                 className="text-mono-silver hover:text-mono-white transition-colors"

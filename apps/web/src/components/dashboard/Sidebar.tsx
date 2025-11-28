@@ -72,16 +72,16 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         className={`
           fixed top-0 left-0 h-full bg-mono-black border-r border-mono-silver/15
           transition-transform duration-300 z-50
-          w-64 lg:translate-x-0
+          w-56 lg:translate-x-0
           ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="p-8 border-b border-mono-silver/15">
+          <div className="py-6 px-8 border-b border-mono-silver/15">
             <Link href="/" className="flex items-center space-x-3 group">
               <svg
-                className="w-8 h-8 stroke-mono-white group-hover:stroke-mono-silver transition-colors"
+                className="w-8 h-8 stroke-mono-white group-hover:stroke-mono-silver transition-colors duration-150"
                 viewBox="0 0 64 64"
                 fill="none"
                 strokeWidth="1.5"
@@ -104,11 +104,11 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                   href={item.href}
                   className={`
                     flex items-center space-x-3 px-4 py-3 rounded
-                    font-inter text-sm transition-all duration-200
+                    font-inter text-sm transition-all duration-150
                     ${
                       isActive
-                        ? 'bg-mono-white/10 text-mono-white border border-mono-white/20'
-                        : 'text-mono-silver hover:text-mono-white hover:bg-mono-white/5'
+                        ? 'bg-[#ffffff14] text-mono-white border-l-2 border-white'
+                        : 'text-mono-silver hover:text-mono-white hover:bg-[#ffffff08] hover:shadow-[0_0_8px_rgba(255,255,255,0.1)]'
                     }
                   `}
                 >
@@ -123,8 +123,9 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           <div className="p-4 border-t border-mono-silver/15">
             <button
               className="flex items-center space-x-3 px-4 py-3 rounded w-full
-                text-mono-silver hover:text-mono-white hover:bg-mono-white/5
-                font-inter text-sm transition-all duration-200"
+                text-mono-silver hover:text-mono-white hover:bg-[#ffffff08] 
+                hover:shadow-[0_0_8px_rgba(255,255,255,0.1)]
+                font-inter text-sm transition-all duration-150"
             >
               <svg
                 className="w-5 h-5 stroke-current"

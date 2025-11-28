@@ -12,7 +12,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       {/* Main Content Area */}
-      <div className="lg:pl-64 min-h-screen">{children}</div>
+      <div className="lg:pl-56 min-h-screen">{children}</div>
     </div>
   );
 }

@@ -14,6 +14,11 @@ export default function Home() {
   const [submitted, setSubmitted] = useState(false);
   const [scrollY, setScrollY] = useState(0);
   const [isLaunchingDemo, setIsLaunchingDemo] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Parallax scroll effect
   useEffect(() => {
@@ -80,6 +85,26 @@ export default function Home() {
       setIsLaunchingDemo(false);
     }
   };
+
+  // Show minimal loading state during SSR to prevent hydration errors
+  if (!isMounted) {
+    return (
+      <main className="bg-mono-black text-mono-white min-h-screen flex items-center justify-center">
+        <div className="animate-pulse">
+          <svg
+            className="w-16 h-16 stroke-mono-white mx-auto"
+            viewBox="0 0 64 64"
+            fill="none"
+            strokeWidth="1.5"
+          >
+            <rect x="8" y="8" width="48" height="48" />
+            <line x1="32" y1="8" x2="32" y2="56" />
+            <line x1="8" y1="32" x2="56" y2="32" />
+          </svg>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="bg-mono-black text-mono-white relative">
@@ -183,24 +208,6 @@ export default function Home() {
               >
                 Upload Your Video
               </Link>
-
-              {/* Dashboard Link - Tertiary */}
-              <Link
-                href="/dashboard"
-                className="text-mono-silver hover:text-mono-white font-inter text-sm transition-colors flex items-center space-x-1"
-              >
-                <span>Go to Dashboard</span>
-                <svg
-                  className="w-4 h-4"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                  <polyline points="12 5 19 12 12 19" />
-                </svg>
-              </Link>
             </div>
 
             {/* Sub-CTA */}
@@ -217,7 +224,7 @@ export default function Home() {
       </section>
 
       {/* Editor Showcase - NEW */}
-      <EditorShowcase />
+      {isMounted && <EditorShowcase />}
 
       {/* Social Proof Section */}
       <section className="py-24 px-4 bg-mono-black border-b border-mono-silver/20">
@@ -668,7 +675,7 @@ export default function Home() {
       </section>
 
       {/* Testimonials - NEW */}
-      <Testimonials />
+      {isMounted && <Testimonials />}
 
       {/* Manifesto Section */}
       <section className="py-48 px-4 bg-mono-black border-b border-mono-silver/20 animate-fade-up">

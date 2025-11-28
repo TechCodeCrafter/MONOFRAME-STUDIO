@@ -18,28 +18,10 @@ export default function AppHeader() {
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-mono-black/95 backdrop-blur-sm border-b border-mono-silver/10">
-      <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-        {/* Logo */}
-        <Link
-          href="/dashboard"
-          className="flex items-center space-x-3 hover:opacity-80 transition-opacity group"
-        >
-          <svg
-            className="w-8 h-8 stroke-mono-white"
-            viewBox="0 0 64 64"
-            fill="none"
-            strokeWidth="1.5"
-          >
-            <rect x="8" y="8" width="48" height="48" />
-            <line x1="32" y1="8" x2="32" y2="56" />
-            <line x1="8" y1="32" x2="56" y2="32" />
-          </svg>
-          <span className="font-montserrat font-bold text-xl text-mono-white">MONOFRAME</span>
-        </Link>
-
+    <header className="sticky top-0 z-50 h-16 backdrop-blur-xl bg-[#0a0a0a]/70 border-b border-white/10">
+      <div className="max-w-7xl mx-auto h-full px-8 flex items-center">
         {/* Navigation */}
-        <nav className="flex items-center space-x-1">
+        <nav className="flex items-center justify-end space-x-1 w-full">
           <Link
             href="/dashboard"
             className={`
@@ -71,7 +53,8 @@ export default function AppHeader() {
             className="
               ml-2 px-4 py-2 rounded font-montserrat font-semibold text-sm
               bg-mono-white text-mono-black
-              hover:bg-mono-silver transition-colors
+              hover:bg-mono-silver hover:shadow-[0_0_12px_rgba(255,255,255,0.2)]
+              transition-all
             "
           >
             New Project

@@ -87,6 +87,12 @@ export default function UploadPage() {
     const handleUploadAndProcess = async () => {
         if (!file) return;
 
+        const maxSizeBytes = 5 * 1024 * 1024; // 5MB
+        if (file.size > maxSizeBytes) {
+            alert(`Video file is too large (${formatFileSize(file.size)}). Please use a video smaller than 5MB for this demo.`);
+            return;
+        }
+
         setIsProcessing(true);
         setProcessingStatus('Reading video file...');
 
@@ -131,7 +137,20 @@ export default function UploadPage() {
             });
         } catch (error) {
             console.error('Upload and processing failed:', error);
-            alert('Failed to process video. Please try again.');
+
+            // Provide more helpful error message
+            let errorMessage = 'Failed to process video. ';
+            if (error instanceof Error) {
+                if (error.message.includes('quota') || error.message.includes('storage')) {
+                    errorMessage += 'Video is too large for browser storage. Try a smaller file (< 5MB).';
+                } else {
+                    errorMessage += error.message;
+                }
+            } else {
+                errorMessage += 'Please try again with a smaller video file.';
+            }
+
+            alert(errorMessage);
             setIsProcessing(false);
             setProcessingStatus('');
         }
@@ -220,7 +239,7 @@ export default function UploadPage() {
 
                                     {/* Accepted Formats */}
                                     <p className="font-inter text-sm text-mono-silver/60">
-                                        Supported formats: MP4, MOV, AVI
+                                        Supported formats: MP4, MOV, AVI • Max 5MB
                                     </p>
                                 </div>
 

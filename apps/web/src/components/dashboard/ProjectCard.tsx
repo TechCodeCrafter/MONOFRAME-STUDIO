@@ -21,12 +21,13 @@ export default function ProjectCard({ id, title, status, date, thumbnailUrl }: P
   return (
     <Link
       href={`/dashboard/${id}`}
-      className="group block bg-mono-slate/30 border border-mono-silver/15 rounded-lg 
-        overflow-hidden hover:border-mono-white/40 hover:shadow-2xl hover:-translate-y-1 
-        transition-all duration-300"
+      className="group block bg-mono-slate/30 rounded-xl border border-white/5
+        overflow-hidden hover:border-white/10 hover:scale-[1.015]
+        hover:shadow-[0_0_24px_rgba(255,255,255,0.12)]
+        transition-all duration-200 ease-in-out"
     >
       {/* Thumbnail */}
-      <div className="aspect-video bg-mono-shadow relative overflow-hidden">
+      <div className="aspect-video bg-[#0a0a0a] rounded-lg relative overflow-hidden">
         {thumbnailUrl ? (
           <Image src={thumbnailUrl} alt={title} fill className="object-cover" />
         ) : (

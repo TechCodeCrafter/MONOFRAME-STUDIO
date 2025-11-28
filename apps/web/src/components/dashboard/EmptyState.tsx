@@ -43,8 +43,8 @@ export default function EmptyState({ onUpload: _onUpload }: EmptyStateProps) {
         </p>
 
         {/* Text */}
-        <h2 className="font-montserrat font-bold text-4xl text-mono-white mb-4">No Projects Yet</h2>
-        <p className="font-inter text-lg text-mono-silver/80 mb-10 leading-relaxed">
+        <h2 className="text-2xl font-semibold tracking-tight mb-2">No Projects Yet</h2>
+        <p className="font-inter text-lg text-mono-silver/80 mt-8 mb-6 leading-relaxed">
           Upload a video to get started with AI editing
         </p>
 

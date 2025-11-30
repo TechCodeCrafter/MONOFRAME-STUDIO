@@ -2,18 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { EditorShowcase, Testimonials } from '@/components/home';
-import { createOrGetDemoProject } from '@/lib/projectStore';
 
 export default function Home() {
-  const router = useRouter();
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [scrollY, setScrollY] = useState(0);
-  const [isLaunchingDemo, setIsLaunchingDemo] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -63,28 +59,6 @@ export default function Home() {
     }
   };
 
-  const handleLaunchDemo = () => {
-    try {
-      setIsLaunchingDemo(true);
-
-      // Create or get the demo project
-      const demoProject = createOrGetDemoProject();
-
-      // Navigate to the first clip in the demo project
-      if (demoProject.clips && demoProject.clips.length > 0) {
-        const firstClip = demoProject.clips[0];
-        router.push(`/dashboard/${demoProject.id}/editor/${firstClip.id}`);
-      } else {
-        console.error('Demo project has no clips');
-        alert('Failed to launch demo. Please try again.');
-        setIsLaunchingDemo(false);
-      }
-    } catch (error) {
-      console.error('Error launching demo:', error);
-      alert('Failed to launch demo. Please try again.');
-      setIsLaunchingDemo(false);
-    }
-  };
 
   // Show minimal loading state during SSR to prevent hydration errors
   if (!isMounted) {
@@ -175,31 +149,21 @@ export default function Home() {
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-12">
               {/* Live Editor Demo Button - Primary */}
-              <button
-                onClick={handleLaunchDemo}
-                disabled={isLaunchingDemo}
-                className="bg-mono-white text-mono-black font-montserrat font-semibold px-12 py-5 text-lg rounded hover:bg-mono-silver hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 w-full sm:w-auto text-center btn-pulse disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 flex items-center justify-center space-x-2"
+              <Link
+                href="/demo"
+                className="bg-mono-white text-mono-black font-montserrat font-semibold px-12 py-5 text-lg rounded hover:bg-mono-silver hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 w-full sm:w-auto text-center btn-pulse flex items-center justify-center space-x-2"
               >
-                {isLaunchingDemo ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-mono-black/20 border-t-mono-black rounded-full animate-spin" />
-                    <span>Launching Demo...</span>
-                  </>
-                ) : (
-                  <>
-                    <svg
-                      className="w-5 h-5"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <polygon points="5,3 19,12 5,21" fill="currentColor" stroke="none" />
-                    </svg>
-                    <span>Open Live Editor Demo</span>
-                  </>
-                )}
-              </button>
+                <svg
+                  className="w-5 h-5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <polygon points="5,3 19,12 5,21" fill="currentColor" stroke="none" />
+                </svg>
+                <span>Open Live Editor Demo</span>
+              </Link>
 
               {/* Upload Button - Secondary */}
               <Link

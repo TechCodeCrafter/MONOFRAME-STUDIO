@@ -193,7 +193,7 @@ export function simulateProcessing(
   // Update to processing
   updateProject(projectId, { status: 'processing' });
 
-  // After 8 seconds, mark as processed and add clips
+  // After 3 seconds, mark as processed and add clips
   setTimeout(() => {
     // Get the project to access its video URL
     const project = getProjectById(projectId);
@@ -216,7 +216,7 @@ export function simulateProcessing(
     if (onComplete && updatedProject) {
       onComplete(updatedProject);
     }
-  }, 8000);
+  }, 3000);
 }
 
 // Create or get demo project for live editor demo

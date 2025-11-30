@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     siteName: 'MonoFrame',
     images: [
       {
-        url: '/og-monoframe.png', // TODO: Add this image to /public/og-monoframe.png
+        url: '/og-monoframe.png',
         width: 1200,
         height: 630,
         alt: 'MonoFrame – The First AI Film Editor',
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     title: 'MonoFrame — The First AI Film Editor',
     description:
       'AI that edits like a film director. MonoFrame analyzes emotion, pacing, and motion to cut your video into cinematic highlights.',
-    images: ['/og-monoframe.png'], // TODO: Add this image to /public/og-monoframe.png
+    images: ['/og-monoframe.png'],
   },
 };
 

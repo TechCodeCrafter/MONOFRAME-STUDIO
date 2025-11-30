@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import Image from 'next/image';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -80,16 +81,13 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           {/* Logo */}
           <div className="py-6 px-8 border-b border-mono-silver/15">
             <Link href="/" className="flex items-center space-x-3 group">
-              <svg
-                className="w-8 h-8 stroke-mono-white group-hover:stroke-mono-silver transition-colors duration-150"
-                viewBox="0 0 64 64"
-                fill="none"
-                strokeWidth="1.5"
-              >
-                <rect x="8" y="8" width="48" height="48" />
-                <line x1="32" y1="8" x2="32" y2="56" />
-                <line x1="8" y1="32" x2="56" y2="32" />
-              </svg>
+              <Image
+                src="/logo-icon.svg"
+                alt="MonoFrame"
+                width={28}
+                height={28}
+                className="opacity-80 group-hover:opacity-100 transition-opacity duration-150"
+              />
               <span className="font-montserrat font-bold text-xl text-mono-white">MONOFRAME</span>
             </Link>
           </div>

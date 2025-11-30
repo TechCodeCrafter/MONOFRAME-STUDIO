@@ -12,7 +12,7 @@ export const metadata: Metadata = {
     siteName: 'MonoFrame',
     images: [
       {
-        url: '/og-monoframe-demo.png', // TODO: Add this image to /public/og-monoframe-demo.png
+        url: '/og-monoframe-demo.png',
         width: 1200,
         height: 630,
         alt: 'MonoFrame Live Editor Demo',
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     title: 'MonoFrame Live Editor Demo',
     description:
       'A Cursor-for-video style AI editor — right in your browser.',
-    images: ['/og-monoframe-demo.png'], // TODO: Add this image to /public/og-monoframe-demo.png
+    images: ['/og-monoframe-demo.png'],
   },
 };
 

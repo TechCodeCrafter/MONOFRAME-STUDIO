@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import Image from 'next/image';
 
 /**
  * Global AppHeader - appears on all pages
@@ -19,9 +20,20 @@ export default function AppHeader() {
 
   return (
     <header className="sticky top-0 z-50 h-16 backdrop-blur-xl bg-[#0a0a0a]/70 border-b border-white/10">
-      <div className="max-w-7xl mx-auto h-full px-8 flex items-center">
+      <div className="max-w-7xl mx-auto h-full px-8 flex items-center justify-between">
+        {/* Logo */}
+        <Link href="/" className="flex items-center">
+          <Image
+            src="/logo-icon.svg"
+            alt="MonoFrame"
+            width={28}
+            height={28}
+            className="opacity-80 hover:opacity-100 transition-opacity"
+          />
+        </Link>
+
         {/* Navigation */}
-        <nav className="flex items-center justify-end space-x-1 w-full">
+        <nav className="flex items-center space-x-1">
           <Link
             href="/dashboard"
             className={`

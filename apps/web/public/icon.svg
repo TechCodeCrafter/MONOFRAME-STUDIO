@@ -1,0 +1,26 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Dark background -->
+  <rect width="512" height="512" fill="#0a0a0a"/>
+  
+  <!-- Film frame outline -->
+  <rect x="96" y="96" width="320" height="320" rx="8" stroke="white" stroke-width="12" fill="none" opacity="0.95"/>
+  
+  <!-- Film sprocket holes -->
+  <rect x="80" y="140" width="20" height="40" fill="white" opacity="0.6" rx="4"/>
+  <rect x="80" y="332" width="20" height="40" fill="white" opacity="0.6" rx="4"/>
+  <rect x="412" y="140" width="20" height="40" fill="white" opacity="0.6" rx="4"/>
+  <rect x="412" y="332" width="20" height="40" fill="white" opacity="0.6" rx="4"/>
+  
+  <!-- Geometric "M" -->
+  <path 
+    d="M 160 340 L 160 180 L 256 276 L 352 180 L 352 340" 
+    stroke="white" 
+    stroke-width="24" 
+    stroke-linecap="square"
+    stroke-linejoin="miter"
+    fill="none"
+  />
+  
+  <!-- Center vertical accent -->
+  <line x1="256" y1="276" x2="256" y2="340" stroke="white" stroke-width="24" stroke-linecap="square"/>
+</svg>

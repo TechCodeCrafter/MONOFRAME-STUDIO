@@ -1,15 +1,23 @@
-<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-  <rect width="200" height="200" fill="#0a0a0a"/>
-  <text
-    x="50%"
-    y="50%"
-    text-anchor="middle"
-    dominant-baseline="middle"
-    fill="white"
-    font-family="Arial, sans-serif"
-    font-size="120"
-    font-weight="700">
-    M
+<svg width="240" height="40" viewBox="0 0 240 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- MONOFRAME Wordmark - Futuristic Tech-Film Typography -->
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght:700&amp;display=swap');
+    </style>
+  </defs>
+  
+  <text 
+    x="0" 
+    y="30" 
+    fill="white" 
+    font-family="'Orbitron', 'SF Pro Display', -apple-system, sans-serif" 
+    font-size="28" 
+    font-weight="700" 
+    letter-spacing="6">
+    MONOFRAME
   </text>
+  
+  <!-- Subtle accent lines for tech feel -->
+  <line x1="0" y1="38" x2="60" y2="38" stroke="white" stroke-width="1" opacity="0.3"/>
+  <line x1="180" y1="38" x2="240" y2="38" stroke="white" stroke-width="1" opacity="0.3"/>
 </svg>
-

@@ -20,6 +20,50 @@ function formatTime(seconds: number): string {
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
+function getAspectRatioClass(ratio: string): string {
+  switch (ratio) {
+    case '16:9':
+      return 'aspect-video'; // 16:9
+    case '9:16':
+      return 'aspect-[9/16]'; // 9:16 (vertical)
+    case '1:1':
+      return 'aspect-square'; // 1:1
+    case '4:5':
+      return 'aspect-[4/5]'; // 4:5 (Instagram)
+    default:
+      return 'aspect-video';
+  }
+}
+
+// Generate fake B-Roll suggestions based on clip ID (deterministic)
+function generateBRollSuggestions(clipId: number) {
+  const allSuggestions = [
+    { label: 'City Skyline', tag: 'Suggested for emotion' },
+    { label: 'Nature Shot', tag: 'Suggested for motion' },
+    { label: 'Close-Up Shot', tag: 'Suggested for tension' },
+    { label: 'Aerial View', tag: 'Suggested for emotion' },
+    { label: 'Urban Traffic', tag: 'Suggested for motion' },
+    { label: 'Sunset Timelapse', tag: 'Suggested for emotion' },
+    { label: 'Ocean Waves', tag: 'Suggested for rhythm' },
+    { label: 'Forest Path', tag: 'Suggested for pacing' },
+    { label: 'Architecture Detail', tag: 'Suggested for tension' },
+    { label: 'People Walking', tag: 'Suggested for motion' },
+    { label: 'Neon Lights', tag: 'Suggested for emotion' },
+    { label: 'Mountain Range', tag: 'Suggested for emotion' },
+  ];
+
+  // Use clipId as seed for deterministic randomization
+  const seed = clipId * 12345;
+  const shuffled = [...allSuggestions].sort(() => {
+    const x = Math.sin(seed) * 10000;
+    return x - Math.floor(x) - 0.5;
+  });
+
+  // Return 6-8 suggestions
+  const count = 6 + (clipId % 3);
+  return shuffled.slice(0, count);
+}
+
 function useDebounce<T extends (...args: never[]) => void>(callback: T, delay: number) {
   const timeoutRef = useRef<NodeJS.Timeout>();
 
@@ -143,6 +187,13 @@ export default function ClipEditorPage() {
   // Trim controls
   const [trimStart, setTrimStart] = useState(0);
   const [trimEnd, setTrimEnd] = useState(0);
+
+  // Aspect ratio control
+  const [aspectRatio, setAspectRatio] = useState<'16:9' | '9:16' | '1:1' | '4:5'>('16:9');
+
+  // B-Roll suggestions modal
+  const [showBRollModal, setShowBRollModal] = useState(false);
+  const [selectedBRoll, setSelectedBRoll] = useState<string>('');
 
   // Load project and clip (fires once on mount)
   useEffect(() => {
@@ -612,17 +663,46 @@ export default function ClipEditorPage() {
             className={`absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_40%,rgba(0,0,0,0.6)_100%)] transition-opacity duration-150 ${isFullscreen ? 'opacity-0' : ''}`}
           />
 
+          {/* Aspect Ratio Toggle */}
+          {!isFullscreen && (
+            <div className="relative z-20 mb-4 flex justify-center">
+              <div className="inline-flex items-center gap-2 bg-mono-black/80 backdrop-blur-sm border border-mono-silver/20 rounded-lg p-1">
+                {(['16:9', '9:16', '1:1', '4:5'] as const).map((ratio) => (
+                  <button
+                    key={ratio}
+                    onClick={() => setAspectRatio(ratio)}
+                    className={`
+                      px-4 py-2 rounded-md font-inter text-xs font-medium transition-all duration-200
+                      ${
+                        aspectRatio === ratio
+                          ? 'bg-white text-mono-black shadow-[0_0_12px_rgba(255,255,255,0.3)]'
+                          : 'text-mono-silver hover:text-white hover:bg-white/5'
+                      }
+                    `}
+                  >
+                    {ratio}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="flex-1 flex items-center justify-center relative z-10">
+            {/* Aspect Ratio Crop Container */}
             <div
-              className={`w-full bg-mono-shadow border border-mono-silver/10 rounded-lg overflow-hidden relative group transition-all duration-150 ${
-                isFullscreen
-                  ? 'max-w-none h-full border-0 rounded-none bg-mono-black'
-                  : 'max-w-5xl aspect-video'
-              }`}
+              className={`
+                relative bg-mono-shadow overflow-hidden group
+                transition-all duration-200
+                ${
+                  isFullscreen
+                    ? `h-full max-h-screen ${getAspectRatioClass(aspectRatio)} border-0 rounded-none bg-mono-black`
+                    : `w-full max-w-5xl ${getAspectRatioClass(aspectRatio)} border border-mono-silver/10 rounded-lg`
+                }
+              `}
             >
               <video
                 ref={videoRef}
-                className="w-full h-full object-contain"
+                className="absolute inset-0 w-full h-full object-cover transition-all duration-200"
                 src={clip.videoUrl || project.videoUrl}
                 onTimeUpdate={handleTimeUpdate}
                 onLoadedMetadata={handleLoadedMetadata}
@@ -958,6 +1038,54 @@ export default function ClipEditorPage() {
                 Delete Clip
               </button>
             </div>
+
+            {/* AI B-Roll Suggestions */}
+            <div className="h-px bg-mono-silver/10 mt-8 mb-6" />
+            
+            <div>
+              <h3 className="text-lg font-medium text-white/70 mb-6">AI B-Roll Suggestions</h3>
+              <div className="space-y-3">
+                {generateBRollSuggestions(clip.id).map((suggestion, index) => (
+                  <button
+                    key={index}
+                    onClick={() => {
+                      setSelectedBRoll(suggestion.label);
+                      setShowBRollModal(true);
+                    }}
+                    className="w-full group relative overflow-hidden rounded-lg border border-mono-silver/20 hover:border-white/30 transition-all duration-200 hover:shadow-[0_0_16px_rgba(255,255,255,0.1)] hover:scale-[1.02]"
+                  >
+                    {/* Thumbnail Placeholder */}
+                    <div className="aspect-video bg-gradient-to-br from-mono-silver/10 to-mono-black relative overflow-hidden">
+                      {/* Blurred pattern */}
+                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.1),transparent_50%)] blur-xl" />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <svg
+                          className="w-8 h-8 text-white/20"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        >
+                          <rect x="2" y="2" width="20" height="20" rx="2" />
+                          <circle cx="8.5" cy="8.5" r="1.5" />
+                          <path d="M21 15l-5-5L5 21" />
+                        </svg>
+                      </div>
+                    </div>
+
+                    {/* Info */}
+                    <div className="p-3 text-left">
+                      <p className="font-montserrat font-semibold text-sm text-white mb-1">
+                        {suggestion.label}
+                      </p>
+                      <span className="inline-block px-2 py-0.5 bg-white/5 border border-white/10 rounded text-[10px] font-inter text-mono-silver">
+                        {suggestion.tag}
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
           </aside>
         )}
       </div>
@@ -1032,6 +1160,83 @@ export default function ClipEditorPage() {
             </div>
           </div>
         </>
+      )}
+
+      {/* B-Roll Suggestion Modal */}
+      {showBRollModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in"
+          onClick={() => setShowBRollModal(false)}
+        >
+          <div
+            className="bg-mono-black border border-mono-silver/20 rounded-lg shadow-2xl w-full max-w-md p-6 animate-fade-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-2xl font-semibold tracking-tight">AI B-Roll</h3>
+              <button
+                onClick={() => setShowBRollModal(false)}
+                className="text-mono-silver hover:text-mono-white transition-colors"
+              >
+                <svg
+                  className="w-5 h-5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            {/* B-Roll Preview */}
+            <div className="mb-6">
+              <div className="aspect-video bg-gradient-to-br from-mono-silver/10 to-mono-black rounded-lg border border-mono-silver/20 relative overflow-hidden mb-4">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.1),transparent_50%)] blur-2xl" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center">
+                    <svg
+                      className="w-16 h-16 text-white/20 mx-auto mb-3"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                    >
+                      <rect x="2" y="2" width="20" height="20" rx="2" />
+                      <circle cx="8.5" cy="8.5" r="1.5" />
+                      <path d="M21 15l-5-5L5 21" />
+                    </svg>
+                    <p className="font-montserrat font-semibold text-lg text-white">
+                      {selectedBRoll}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+                <p className="font-inter text-sm text-mono-silver text-center">
+                  <span className="text-white font-medium">B-Roll insertion coming soon</span>
+                  <br />
+                  <span className="text-xs mt-2 block">
+                    AI-powered B-roll suggestions will be integrated in a future update
+                  </span>
+                </p>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowBRollModal(false)}
+                className="flex-1 bg-mono-white text-mono-black font-montserrat font-semibold px-4 py-3 rounded hover:bg-mono-silver transition-colors"
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Keyboard Shortcuts Modal */}

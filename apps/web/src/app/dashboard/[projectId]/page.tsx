@@ -21,6 +21,8 @@ export default function ProjectDetailsPage() {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isMounted, setIsMounted] = useState(false);
+  const [activeClipByPlayhead, setActiveClipByPlayhead] = useState<number | null>(null);
+  const [timelineHoverTime, setTimelineHoverTime] = useState<number | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const clipListRef = useRef<HTMLDivElement>(null);
@@ -102,7 +104,27 @@ export default function ProjectDetailsPage() {
 
   const handleTimeUpdate = () => {
     if (videoRef.current) {
-      setCurrentTime(videoRef.current.currentTime);
+      const time = videoRef.current.currentTime;
+      setCurrentTime(time);
+
+      // Detect which clip contains the current playhead
+      if (project?.clips) {
+        const activeIndex = project.clips.findIndex(
+          clip => time >= clip.startTime && time < clip.endTime
+        );
+
+        if (activeIndex !== -1 && activeIndex !== activeClipByPlayhead) {
+          setActiveClipByPlayhead(activeIndex);
+
+          // Auto-scroll to active clip in sidebar
+          const clipElement = document.querySelector(`[data-clip-index="${activeIndex}"]`);
+          if (clipElement && clipListRef.current) {
+            clipElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        } else if (activeIndex === -1) {
+          setActiveClipByPlayhead(null);
+        }
+      }
     }
   };
 
@@ -301,7 +323,7 @@ export default function ProjectDetailsPage() {
       </header>
 
       {/* Main Layout */}
-      <div className="grid lg:grid-cols-[350px_1fr] gap-6 p-8">
+      <div className="grid lg:grid-cols-[350px_1fr] gap-6 p-6">
         {/* Left Sidebar - Clips List */}
         <aside className="space-y-4">
           <h2 className="text-lg font-medium text-white/70 mb-6 flex items-center justify-between">
@@ -309,56 +331,63 @@ export default function ProjectDetailsPage() {
             <span className="text-sm text-mono-silver">{project.clips.length}</span>
           </h2>
 
-          <div ref={clipListRef} className="space-y-3 max-h-[calc(100vh-250px)] overflow-y-auto pr-2">
-            {project.clips.map((clip, index) => (
-              <div
-                key={clip.id}
-                data-clip-index={index}
-                className={`
-                  w-full p-4 border rounded-lg transition-all duration-300 cursor-pointer
-                  ${selectedClipIndex === index
-                    ? 'border-mono-white bg-mono-white/5 shadow-lg'
-                    : 'border-mono-silver/30 hover:border-mono-white/50'
-                  }
+          <div ref={clipListRef} className="space-y-3 max-h-[calc(100vh-250px)] overflow-y-auto pr-2 custom-scrollbar">
+            {project.clips.map((clip, index) => {
+              const isSelected = selectedClipIndex === index;
+              const isPlayheadActive = activeClipByPlayhead === index;
+
+              return (
+                <div
+                  key={clip.id}
+                  data-clip-index={index}
+                  className={`
+                  w-full p-4 border rounded-xl transition-all duration-300 cursor-pointer
+                  ${isPlayheadActive
+                      ? 'border-white/40 bg-white/10 shadow-[0_0_24px_rgba(255,255,255,0.2)] scale-[1.02]'
+                      : isSelected
+                        ? 'border-white/20 bg-mono-white/5 shadow-lg'
+                        : 'border-mono-silver/30 hover:border-white/30 hover:bg-white/5 hover:scale-[1.01] hover:shadow-[0_0_16px_rgba(255,255,255,0.1)]'
+                    }
                 `}
-              >
-                <button onClick={() => handleClipSelect(index)} className="w-full text-left mb-3">
-                  <div className="flex items-start justify-between mb-2">
-                    <h3 className="font-montserrat font-semibold text-base">{clip.title}</h3>
-                    <div className="flex items-center space-x-2">
-                      <div
-                        className={`w-2 h-2 rounded-full ${selectedClipIndex === index ? 'bg-mono-white animate-pulse' : 'bg-mono-white'
-                          }`}
-                      />
-                      <span className="font-inter text-sm">{clip.score}</span>
-                    </div>
-                  </div>
-                  <p className="font-inter text-xs text-mono-silver mb-1">{clip.timestamp}</p>
-                  <p className="font-inter text-xs text-mono-silver/70">{clip.duration}s</p>
-                </button>
-                <button
-                  onClick={() => router.push(`/dashboard/${projectId}/editor/${clip.id}`)}
-                  className="w-full bg-mono-white text-mono-black font-montserrat font-semibold text-xs px-3 py-2 rounded hover:bg-mono-silver transition-colors flex items-center justify-center space-x-2"
                 >
-                  <svg
-                    className="w-3 h-3"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
+                  <button onClick={() => handleClipSelect(index)} className="w-full text-left mb-3">
+                    <div className="flex items-start justify-between mb-2">
+                      <h3 className="font-montserrat font-semibold text-base">{clip.title}</h3>
+                      <div className="flex items-center space-x-2">
+                        <div
+                          className={`w-2 h-2 rounded-full ${selectedClipIndex === index ? 'bg-mono-white animate-pulse' : 'bg-mono-white'
+                            }`}
+                        />
+                        <span className="font-inter text-sm">{clip.score}</span>
+                      </div>
+                    </div>
+                    <p className="font-inter text-xs text-mono-silver mb-1">{clip.timestamp}</p>
+                    <p className="font-inter text-xs text-mono-silver/70">{clip.duration}s</p>
+                  </button>
+                  <button
+                    onClick={() => router.push(`/dashboard/${projectId}/editor/${clip.id}`)}
+                    className="w-full bg-mono-white text-mono-black font-montserrat font-semibold text-xs px-3 py-2 rounded hover:bg-mono-silver transition-colors flex items-center justify-center space-x-2"
                   >
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                  </svg>
-                  <span>Edit Clip</span>
-                </button>
-              </div>
-            ))}
+                    <svg
+                      className="w-3 h-3"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                    </svg>
+                    <span>Edit Clip</span>
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </aside>
 
         {/* Main Content - Video Player */}
-        <main className="space-y-6">
+        <main className="space-y-8">
           {/* Video Player */}
           <div
             ref={videoContainerRef}
@@ -401,9 +430,9 @@ export default function ProjectDetailsPage() {
             {isMounted && !isPlaying && (
               <button
                 onClick={togglePlayPause}
-                className="absolute inset-0 z-20 flex items-center justify-center bg-mono-black/40 backdrop-blur-sm transition-opacity"
+                className="absolute inset-0 z-20 flex items-center justify-center bg-mono-black/40 backdrop-blur-sm transition-all duration-200 animate-fadeIn"
               >
-                <div className="w-20 h-20 rounded-full bg-mono-white/10 border-2 border-mono-white ring-[3px] ring-white/40 hover:ring-white/70 flex items-center justify-center hover:bg-mono-white/20 transition">
+                <div className="w-20 h-20 rounded-full bg-mono-white/10 border-2 border-mono-white ring-[3px] ring-white/40 hover:ring-white/70 hover:scale-110 flex items-center justify-center hover:bg-mono-white/20 transition-all duration-300 animate-scaleIn">
                   <svg
                     className="w-8 h-8 stroke-mono-white ml-1"
                     viewBox="0 0 24 24"
@@ -436,15 +465,15 @@ export default function ProjectDetailsPage() {
                     {/* Play/Pause Button */}
                     <button
                       onClick={togglePlayPause}
-                      className="w-10 h-10 rounded-full border border-mono-silver/30 flex items-center justify-center hover:bg-mono-white/10 transition-colors"
+                      className="w-10 h-10 rounded-full border border-mono-silver/30 flex items-center justify-center hover:bg-mono-white/10 hover:border-white/60 hover:scale-110 transition-all duration-200"
                     >
                       {isPlaying ? (
-                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                        <svg className="w-4 h-4 transition-all duration-200" viewBox="0 0 24 24" fill="currentColor">
                           <rect x="6" y="4" width="4" height="16" />
                           <rect x="14" y="4" width="4" height="16" />
                         </svg>
                       ) : (
-                        <svg className="w-4 h-4 ml-0.5" viewBox="0 0 24 24" fill="currentColor">
+                        <svg className="w-4 h-4 ml-0.5 transition-all duration-200" viewBox="0 0 24 24" fill="currentColor">
                           <polygon points="5,3 19,12 5,21" />
                         </svg>
                       )}
@@ -519,19 +548,23 @@ export default function ProjectDetailsPage() {
 
           {/* Mini Emotion Curve */}
           {isMounted && selectedClip && !isFullscreen && (
-            <div className="animate-fade-in">
+            <div
+              key={`emotion-${selectedClip.id}`}
+              className="animate-fadeIn"
+            >
               <EmotionGraph
                 clip={selectedClip}
                 startTime={selectedClip.startTime}
                 endTime={selectedClip.endTime}
                 duration={selectedClip.duration}
+                regenerateKey={0}
               />
             </div>
           )}
 
           {/* Full-Width Timeline */}
           {isMounted && !isFullscreen && (
-            <div className="border border-mono-silver/30 rounded-lg p-6 bg-mono-slate/30">
+            <div className="border border-mono-silver/30 rounded-lg p-6 bg-mono-slate/30 mt-8">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-medium text-white/70">Video Timeline</h3>
                 <span className="font-inter text-xs text-mono-silver">
@@ -539,39 +572,93 @@ export default function ProjectDetailsPage() {
                 </span>
               </div>
 
-              {/* Timeline Track */}
-              <div className="relative w-full h-16 bg-mono-black/50 border border-mono-silver/20 rounded overflow-hidden">
+              {/* Timeline Track with Waveform */}
+              <div
+                className="relative w-full h-20 bg-mono-black/50 border border-mono-silver/20 rounded overflow-hidden cursor-pointer group"
+                onMouseMove={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const pos = (e.clientX - rect.left) / rect.width;
+                  setTimelineHoverTime(pos * duration);
+                }}
+                onMouseLeave={() => setTimelineHoverTime(null)}
+                onClick={(e) => {
+                  if (videoRef.current) {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const pos = (e.clientX - rect.left) / rect.width;
+                    videoRef.current.currentTime = pos * duration;
+                  }
+                }}
+              >
+                {/* Waveform Background */}
+                <div className="absolute inset-0 flex items-end justify-around px-1 pb-1 opacity-30">
+                  {Array.from({ length: 100 }).map((_, i) => {
+                    const height = Math.random() * 0.5 + 0.2;
+                    return (
+                      <div
+                        key={i}
+                        className="w-[1px] bg-white/40"
+                        style={{ height: `${height * 100}%` }}
+                      />
+                    );
+                  })}
+                </div>
                 {/* Clip Segments */}
-                {project.clips.map((clip, index) => (
-                  <div
-                    key={clip.id}
-                    onClick={() => handleClipSelect(index)}
-                    className={`
-                      absolute inset-y-0 cursor-pointer transition-all duration-300
-                      ${selectedClipIndex === index
-                        ? 'bg-mono-white/20 border-l-2 border-r-2 border-mono-white'
-                        : 'bg-mono-white/5 hover:bg-mono-white/10'
-                      }
-                    `}
-                    style={{
-                      left: `${duration > 0 ? (clip.startTime / duration) * 100 : 0}%`,
-                      width: `${duration > 0 ? ((clip.endTime - clip.startTime) / duration) * 100 : 0}%`,
-                    }}
-                  >
-                    {/* Clip Label */}
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="font-inter text-[10px] text-mono-white/60 font-semibold">
-                        {index + 1}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                {project.clips.map((clip, index) => {
+                  const isPlayheadInClip = activeClipByPlayhead === index;
 
-                {/* Current Time Indicator */}
+                  return (
+                    <div
+                      key={clip.id}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleClipSelect(index);
+                      }}
+                      className={`
+                      absolute top-2 bottom-2 cursor-pointer transition-all duration-300 rounded
+                      ${isPlayheadInClip
+                          ? 'bg-white/30 border-2 border-white shadow-[0_0_16px_rgba(255,255,255,0.6)]'
+                          : selectedClipIndex === index
+                            ? 'bg-mono-white/20 border-2 border-white/50 shadow-[0_0_8px_rgba(255,255,255,0.3)]'
+                            : 'bg-mono-white/10 border border-white/20 hover:bg-mono-white/15 hover:border-white/40'
+                        }
+                    `}
+                      style={{
+                        left: `${duration > 0 ? (clip.startTime / duration) * 100 : 0}%`,
+                        width: `${duration > 0 ? ((clip.endTime - clip.startTime) / duration) * 100 : 0}%`,
+                      }}
+                    >
+                      {/* Clip Label */}
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="font-inter text-[10px] text-mono-white font-semibold drop-shadow">
+                          {index + 1}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Current Time Indicator (Playhead) */}
                 <div
-                  className="absolute inset-y-0 w-0.5 bg-mono-white shadow-[0_0_8px_rgba(255,255,255,0.8)] pointer-events-none z-10"
+                  className="absolute inset-y-0 w-1 bg-white shadow-[0_0_12px_rgba(255,255,255,0.9)] pointer-events-none z-20"
                   style={{ left: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
-                />
+                >
+                  {/* Playhead Top Circle */}
+                  <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-3 h-3 bg-white rounded-full shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
+                </div>
+
+                {/* Hover Time Bubble */}
+                {timelineHoverTime !== null && (
+                  <div
+                    className="absolute -top-10 -translate-x-1/2 bg-mono-black/90 border border-white/30 rounded px-2 py-1 pointer-events-none z-30 animate-fadeIn"
+                    style={{ left: `${duration > 0 ? (timelineHoverTime / duration) * 100 : 0}%` }}
+                  >
+                    <span className="font-inter text-xs text-white font-medium">
+                      {formatTime(timelineHoverTime)}
+                    </span>
+                    {/* Arrow */}
+                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-mono-black/90 border-r border-b border-white/30 rotate-45" />
+                  </div>
+                )}
               </div>
 
               {/* Timeline Labels */}
@@ -584,7 +671,10 @@ export default function ProjectDetailsPage() {
 
           {/* AI Analysis Panel */}
           {selectedClip && (
-            <div className="border border-mono-silver/30 rounded-lg p-8 bg-mono-slate/30">
+            <div
+              key={`analysis-${selectedClip.id}`}
+              className="border border-mono-silver/30 rounded-lg p-8 bg-mono-slate/30 animate-fadeIn mt-8"
+            >
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-medium text-white/70">AI Analysis</h3>
                 <div className="flex items-center space-x-2">

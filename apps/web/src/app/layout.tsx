@@ -11,9 +11,32 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: 'MonoFrame Studio | The First AI Film Editor',
+  title: 'MonoFrame — The First AI Film Editor',
   description:
-    'The first AI film editor that edits your videos with taste, emotion, and cinematic timing. Transform raw footage into professional edits instantly.',
+    'AI that edits like a film director. MonoFrame analyzes emotion, pacing, and motion to cut your video into cinematic highlights.',
+  openGraph: {
+    title: 'MonoFrame — The First AI Film Editor',
+    description:
+      'AI that edits like a film director. MonoFrame analyzes emotion, pacing, and motion to cut your video into cinematic highlights.',
+    url: 'https://monoframe.local',
+    siteName: 'MonoFrame',
+    images: [
+      {
+        url: '/og-monoframe.png', // TODO: Add this image to /public/og-monoframe.png
+        width: 1200,
+        height: 630,
+        alt: 'MonoFrame – The First AI Film Editor',
+      },
+    ],
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'MonoFrame — The First AI Film Editor',
+    description:
+      'AI that edits like a film director. MonoFrame analyzes emotion, pacing, and motion to cut your video into cinematic highlights.',
+    images: ['/og-monoframe.png'], // TODO: Add this image to /public/og-monoframe.png
+  },
 };
 
 export default function RootLayout({

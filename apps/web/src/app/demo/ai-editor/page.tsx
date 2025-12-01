@@ -14,6 +14,7 @@ type DemoStep = 'upload' | 'processing' | 'results';
 export default function AIDemoPage() {
   const [currentStep, setCurrentStep] = useState<DemoStep>('upload');
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [videoUrl, setVideoUrl] = useState<string>('');
 
   const handleTransition = (nextStep: DemoStep) => {
     setIsTransitioning(true);
@@ -24,7 +25,17 @@ export default function AIDemoPage() {
     }, 300);
   };
 
+  const handleUploadComplete = (url: string) => {
+    setVideoUrl(url);
+    handleTransition('processing');
+  };
+
   const handleReset = () => {
+    // Cleanup object URL
+    if (videoUrl) {
+      URL.revokeObjectURL(videoUrl);
+      setVideoUrl('');
+    }
     handleTransition('upload');
   };
 
@@ -36,7 +47,7 @@ export default function AIDemoPage() {
         }`}
       >
         {currentStep === 'upload' && (
-          <UploadArea onUploadComplete={() => handleTransition('processing')} />
+          <UploadArea onUploadComplete={handleUploadComplete} />
         )}
         
         {currentStep === 'processing' && (
@@ -44,7 +55,7 @@ export default function AIDemoPage() {
         )}
         
         {currentStep === 'results' && (
-          <DemoResults onReset={handleReset} />
+          <DemoResults videoUrl={videoUrl} onReset={handleReset} />
         )}
       </div>
     </div>

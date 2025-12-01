@@ -55,27 +55,8 @@ export default function ProjectDetailsPage() {
     }
   }, [projectId, router, project?.status]);
 
-  if (!project) {
-    return (
-      <div className="min-h-screen bg-mono-black flex items-center justify-center">
-        <div className="text-center">
-          <svg
-            className="w-16 h-16 stroke-mono-white animate-pulse-slow mx-auto mb-4"
-            viewBox="0 0 64 64"
-            fill="none"
-            strokeWidth="1.5"
-          >
-            <rect x="8" y="8" width="48" height="48" />
-            <line x1="32" y1="8" x2="32" y2="56" />
-            <line x1="8" y1="32" x2="56" y2="32" />
-          </svg>
-          <p className="font-inter text-mono-silver">Loading project...</p>
-        </div>
-      </div>
-    );
-  }
-
-  const togglePlayPause = () => {
+  // ALL HOOKS MUST BE DEFINED BEFORE ANY CONDITIONAL RETURNS
+  const togglePlayPause = useCallback(() => {
     if (videoRef.current) {
       if (isPlaying) {
         videoRef.current.pause();
@@ -84,7 +65,7 @@ export default function ProjectDetailsPage() {
       }
       setIsPlaying(!isPlaying);
     }
-  };
+  }, [isPlaying]);
 
   const handleClipSelect = useCallback((index: number) => {
     setSelectedClipIndex(index);
@@ -102,6 +83,30 @@ export default function ProjectDetailsPage() {
     }
   }, [project?.clips]);
 
+  const handleFullscreen = useCallback(() => {
+    toggleFullscreen();
+  }, [toggleFullscreen]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Cmd+F / Ctrl+F for fullscreen
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'f' || e.key === 'F')) {
+        e.preventDefault();
+        toggleFullscreen();
+      }
+      // Space for play/pause
+      if (e.code === 'Space' && e.target === document.body) {
+        e.preventDefault();
+        togglePlayPause();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [togglePlayPause, toggleFullscreen]);
+
+  // Regular helper functions (non-hooks)
   const handleTimeUpdate = () => {
     if (videoRef.current) {
       const time = videoRef.current.currentTime;
@@ -134,34 +139,11 @@ export default function ProjectDetailsPage() {
     }
   };
 
-  const handleFullscreen = useCallback(() => {
-    toggleFullscreen();
-  }, [toggleFullscreen]);
-
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
-
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Cmd+F / Ctrl+F for fullscreen
-      if ((e.metaKey || e.ctrlKey) && (e.key === 'f' || e.key === 'F')) {
-        e.preventDefault();
-        toggleFullscreen();
-      }
-      // Space for play/pause
-      if (e.code === 'Space' && e.target === document.body) {
-        e.preventDefault();
-        togglePlayPause();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [togglePlayPause, toggleFullscreen]);
 
   const selectedClip = project?.clips?.[selectedClipIndex];
 
@@ -204,6 +186,27 @@ export default function ProjectDetailsPage() {
       router.push('/dashboard');
     }
   };
+
+  // CONDITIONAL RETURNS (AFTER ALL HOOKS)
+  if (!project) {
+    return (
+      <div className="min-h-screen bg-mono-black flex items-center justify-center">
+        <div className="text-center">
+          <svg
+            className="w-16 h-16 stroke-mono-white animate-pulse-slow mx-auto mb-4"
+            viewBox="0 0 64 64"
+            fill="none"
+            strokeWidth="1.5"
+          >
+            <rect x="8" y="8" width="48" height="48" />
+            <line x1="32" y1="8" x2="32" y2="56" />
+            <line x1="8" y1="32" x2="56" y2="32" />
+          </svg>
+          <p className="font-inter text-mono-silver">Loading project...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Processing state
   if (project.status === 'processing') {

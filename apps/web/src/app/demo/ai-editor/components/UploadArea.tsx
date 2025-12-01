@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 interface UploadAreaProps {
-  onUploadComplete: () => void;
+  onUploadComplete: (videoUrl: string) => void;
 }
 
 /**
@@ -14,16 +14,27 @@ export default function UploadArea({ onUploadComplete }: UploadAreaProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [fileName, setFileName] = useState('');
+  const [videoUrl, setVideoUrl] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileSelect = () => {
-    // Simulate file selection
-    setFileName('my-film.mp4');
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Create object URL for video playback
+    const url = URL.createObjectURL(file);
+    setVideoUrl(url);
+    setFileName(file.name);
     setIsUploading(true);
     setUploadProgress(0);
   };
 
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
+  };
+
   useEffect(() => {
-    if (!isUploading) return;
+    if (!isUploading || !videoUrl) return;
 
     // Simulate upload progress: 0 → 100% over 1.5 seconds
     const interval = setInterval(() => {
@@ -32,7 +43,7 @@ export default function UploadArea({ onUploadComplete }: UploadAreaProps) {
           clearInterval(interval);
           // Auto-trigger completion after reaching 100%
           setTimeout(() => {
-            onUploadComplete();
+            onUploadComplete(videoUrl);
           }, 300);
           return 100;
         }
@@ -41,7 +52,7 @@ export default function UploadArea({ onUploadComplete }: UploadAreaProps) {
     }, 30);
 
     return () => clearInterval(interval);
-  }, [isUploading, onUploadComplete]);
+  }, [isUploading, videoUrl, onUploadComplete]);
 
   if (isUploading) {
     return (
@@ -151,17 +162,26 @@ export default function UploadArea({ onUploadComplete }: UploadAreaProps) {
             </div>
 
             {/* Upload Button */}
-            <button
-              onClick={handleFileSelect}
-              className="
-                px-8 py-4 bg-white text-black rounded-xl font-semibold text-lg
-                hover:shadow-[0_0_24px_rgba(255,255,255,0.3)]
-                transition-all duration-300
-                cursor-pointer
-              "
-            >
-              Select Film
-            </button>
+            <div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="video/*"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+              <button
+                onClick={triggerFileInput}
+                className="
+                  px-8 py-4 bg-white text-black rounded-xl font-semibold text-lg
+                  hover:shadow-[0_0_24px_rgba(255,255,255,0.3)]
+                  transition-all duration-300
+                  cursor-pointer
+                "
+              >
+                Select Film
+              </button>
+            </div>
 
             {/* Supported Formats */}
             <p className="text-white/40 text-sm">

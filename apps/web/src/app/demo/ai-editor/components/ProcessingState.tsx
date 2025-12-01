@@ -1,22 +1,53 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 interface ProcessingStateProps {
   onProcessingComplete: () => void;
 }
 
+const AI_TASKS = [
+  'Detecting scenes...',
+  'Analyzing emotions...',
+  'Measuring pacing...',
+  'Identifying rhythm patterns...',
+  'Building rough cut...',
+];
+
 /**
  * ProcessingState Component
- * Placeholder for AI processing animation (3-second fake delay)
+ * Simulates AI processing with progress bar and rotating messages
  */
 export default function ProcessingState({ onProcessingComplete }: ProcessingStateProps) {
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      onProcessingComplete();
-    }, 3000);
+  const [progress, setProgress] = useState(0);
+  const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
 
-    return () => clearTimeout(timer);
+  // Rotate AI task messages every 0.8 seconds
+  useEffect(() => {
+    const taskInterval = setInterval(() => {
+      setCurrentTaskIndex((prev) => (prev + 1) % AI_TASKS.length);
+    }, 800);
+
+    return () => clearInterval(taskInterval);
+  }, []);
+
+  // Progress bar: 0 → 100% over 3 seconds
+  useEffect(() => {
+    const progressInterval = setInterval(() => {
+      setProgress((prev) => {
+        if (prev >= 100) {
+          clearInterval(progressInterval);
+          // Trigger completion when reaching 100%
+          setTimeout(() => {
+            onProcessingComplete();
+          }, 300);
+          return 100;
+        }
+        return prev + 100 / 60; // 60 steps over 3 seconds (50ms interval)
+      });
+    }, 50);
+
+    return () => clearInterval(progressInterval);
   }, [onProcessingComplete]);
 
   return (
@@ -34,47 +65,68 @@ export default function ProcessingState({ onProcessingComplete }: ProcessingStat
                 {/* Inner pulsing circle */}
                 <div className="absolute inset-4 rounded-full bg-white/5 animate-pulse"></div>
                 
-                {/* Center icon */}
+                {/* Center progress percentage */}
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <svg
-                    className="w-12 h-12 text-white/60"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <path d="M12 2L2 7l10 5 10-5-10-5z" />
-                    <path d="M2 17l10 5 10-5" />
-                    <path d="M2 12l10 5 10-5" />
-                  </svg>
+                  <span className="text-2xl font-bold text-white">
+                    {Math.round(progress)}%
+                  </span>
                 </div>
               </div>
             </div>
 
-            {/* Processing Text */}
+            {/* Processing Title */}
             <div>
               <h1 className="text-4xl font-bold text-white mb-3 tracking-tight">
                 Analyzing your film...
               </h1>
-              <p className="text-white/60 text-lg">
-                AI is detecting scenes, emotions, and pacing
+              <p className="text-white/60 text-lg h-7">
+                {AI_TASKS[currentTaskIndex]}
               </p>
             </div>
 
-            {/* Progress Steps */}
+            {/* Progress Bar */}
+            <div className="max-w-md mx-auto">
+              <div className="relative h-2 bg-white/10 rounded-full overflow-hidden">
+                {/* Waveform animation underneath */}
+                <div className="absolute inset-0 flex items-center justify-around opacity-30">
+                  {[...Array(20)].map((_, i) => (
+                    <div
+                      key={i}
+                      className="w-0.5 bg-white/50 rounded-full animate-pulse"
+                      style={{
+                        height: `${Math.random() * 100}%`,
+                        animationDelay: `${i * 0.1}s`,
+                        animationDuration: `${0.5 + Math.random() * 0.5}s`,
+                      }}
+                    ></div>
+                  ))}
+                </div>
+                
+                {/* Progress fill */}
+                <div
+                  className="absolute inset-y-0 left-0 bg-white rounded-full transition-all duration-100"
+                  style={{ width: `${progress}%` }}
+                ></div>
+              </div>
+            </div>
+
+            {/* Progress Steps (visual indicators) */}
             <div className="space-y-3 max-w-md mx-auto">
-              <div className="flex items-center space-x-3 text-white/50 text-sm">
-                <div className="w-2 h-2 rounded-full bg-white animate-pulse"></div>
-                <span>Scene detection</span>
-              </div>
-              <div className="flex items-center space-x-3 text-white/50 text-sm">
-                <div className="w-2 h-2 rounded-full bg-white/50 animate-pulse delay-100"></div>
-                <span>Emotion analysis</span>
-              </div>
-              <div className="flex items-center space-x-3 text-white/50 text-sm">
-                <div className="w-2 h-2 rounded-full bg-white/30 animate-pulse delay-200"></div>
-                <span>Pacing optimization</span>
-              </div>
+              {AI_TASKS.slice(0, 3).map((task, i) => (
+                <div
+                  key={i}
+                  className={`flex items-center space-x-3 text-sm transition-all duration-300 ${
+                    currentTaskIndex >= i ? 'text-white/70' : 'text-white/30'
+                  }`}
+                >
+                  <div
+                    className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                      currentTaskIndex >= i ? 'bg-white animate-pulse' : 'bg-white/30'
+                    }`}
+                  ></div>
+                  <span>{task}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -82,4 +134,3 @@ export default function ProcessingState({ onProcessingComplete }: ProcessingStat
     </div>
   );
 }
-

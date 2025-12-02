@@ -27,6 +27,15 @@ export default function UploadArea({ onUploadComplete }: UploadAreaProps) {
     setFileName(file.name);
     setIsUploading(true);
     setUploadProgress(0);
+    
+    // Store file metadata in localStorage for FFmpeg export
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('monoframe_demo_video_file', JSON.stringify({
+        name: file.name,
+        type: file.type,
+        size: file.size,
+      }));
+    }
   };
 
   const triggerFileInput = () => {

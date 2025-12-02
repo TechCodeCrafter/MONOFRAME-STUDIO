@@ -34,3 +34,4 @@ files.forEach(file => {
 console.log('\n📝 Note: These are minimal placeholder PNGs.');
 console.log('   For production, replace with proper images using design tools.');
 
+

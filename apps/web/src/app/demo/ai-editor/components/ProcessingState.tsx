@@ -1,54 +1,149 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { analyzeVideo, runSceneLabeling, type DetectedCut, type EnrichedSegment } from '@/lib/videoAnalysis';
+import { analyzeAllSegments, type SegmentAudioIntelligence } from '@/lib/audioAnalysis';
+import { transcribeWithWhisper, cleanTranscript, alignTranscriptToSegments, type CleanedTranscript, type AlignedTranscript } from '@/lib/transcription';
 
 interface ProcessingStateProps {
-  onProcessingComplete: () => void;
+  videoUrl: string;
+  onAnalysisComplete: (
+    segments: EnrichedSegment[],
+    cuts: DetectedCut[],
+    audioAnalysis: SegmentAudioIntelligence[],
+    transcript: CleanedTranscript,
+    alignedTranscript: AlignedTranscript[]
+  ) => void;
 }
-
-const AI_TASKS = [
-  'Detecting scenes...',
-  'Analyzing emotions...',
-  'Measuring pacing...',
-  'Identifying rhythm patterns...',
-  'Building rough cut...',
-];
 
 /**
  * ProcessingState Component
- * Simulates AI processing with progress bar and rotating messages
+ * Runs real AI cut detection and analysis
  */
-export default function ProcessingState({ onProcessingComplete }: ProcessingStateProps) {
+export default function ProcessingState({ videoUrl, onAnalysisComplete }: ProcessingStateProps) {
   const [progress, setProgress] = useState(0);
-  const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
+  const [currentTask, setCurrentTask] = useState('Initializing...');
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const hasAnalyzed = useRef(false);
 
-  // Rotate AI task messages every 0.8 seconds
+  // Run real analysis
   useEffect(() => {
-    const taskInterval = setInterval(() => {
-      setCurrentTaskIndex((prev) => (prev + 1) % AI_TASKS.length);
-    }, 800);
+    if (!videoUrl || hasAnalyzed.current) return;
 
-    return () => clearInterval(taskInterval);
-  }, []);
+    const runAnalysis = async () => {
+      try {
+        // Create video element
+        const video = document.createElement('video');
+        video.src = videoUrl;
+        video.preload = 'auto';
+        videoRef.current = video;
 
-  // Progress bar: 0 → 100% over 3 seconds
-  useEffect(() => {
-    const progressInterval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(progressInterval);
-          // Trigger completion when reaching 100%
-          setTimeout(() => {
-            onProcessingComplete();
-          }, 300);
-          return 100;
+        // Wait for video metadata
+        await new Promise<void>((resolve, reject) => {
+          video.onloadedmetadata = () => resolve();
+          video.onerror = () => reject(new Error('Failed to load video'));
+        });
+
+        hasAnalyzed.current = true;
+
+        // Run analysis pipeline (cut detection)
+        const result = await analyzeVideo(video, (stage, prog) => {
+          setCurrentTask(stage);
+          setProgress(prog * 70); // 0-70% for cut detection
+        });
+
+        // Run AI scene labeling
+        setCurrentTask('Understanding your scenes...');
+        setProgress(70);
+        
+        const enrichedSegments = await runSceneLabeling(
+          videoUrl,
+          result.segments,
+          (current, total) => {
+            const labelProgress = 70 + ((current / total) * 20); // 70-90%
+            setProgress(labelProgress);
+            setCurrentTask(`Understanding your scenes... (${current}/${total})`);
+          }
+        );
+
+        // Run audio analysis
+        setCurrentTask('Analyzing your audio...');
+        setProgress(70);
+        
+        const videoBlob = await fetch(videoUrl).then(res => res.blob());
+        const audioAnalysis = await analyzeAllSegments(
+          videoBlob,
+          enrichedSegments,
+          (current, total) => {
+            const audioProgress = 70 + ((current / total) * 10); // 70-80%
+            setProgress(audioProgress);
+            setCurrentTask(`Analyzing your audio... (${current}/${total})`);
+          }
+        );
+
+        // Run transcription
+        setCurrentTask('Transcribing audio...');
+        setProgress(80);
+        
+        const whisperResponse = await transcribeWithWhisper(videoBlob);
+        setProgress(85);
+        
+        const cleanedTranscript = cleanTranscript(whisperResponse, {
+          removeFillerWords: true,
+          removeRepeatedWords: true,
+          normalizePunctuation: true,
+          joinBrokenSentences: true,
+        });
+        setProgress(90);
+        
+        setCurrentTask('Aligning transcript...');
+        const alignedTranscript = alignTranscriptToSegments(cleanedTranscript.words, enrichedSegments);
+        setProgress(95);
+
+        // Store results in localStorage for persistence
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('monoframe_analyzed_segments', JSON.stringify(enrichedSegments));
+          localStorage.setItem('monoframe_detected_cuts', JSON.stringify(result.cuts));
+          localStorage.setItem('monoframe_audio_analysis', JSON.stringify(audioAnalysis));
+          localStorage.setItem('monoframe_transcript', JSON.stringify(cleanedTranscript));
+          localStorage.setItem('monoframe_aligned_transcript', JSON.stringify(alignedTranscript));
         }
-        return prev + 100 / 60; // 60 steps over 3 seconds (50ms interval)
-      });
-    }, 50);
 
-    return () => clearInterval(progressInterval);
-  }, [onProcessingComplete]);
+        // Complete
+        setProgress(100);
+        setTimeout(() => {
+          onAnalysisComplete(enrichedSegments, result.cuts, audioAnalysis, cleanedTranscript, alignedTranscript);
+        }, 500);
+      } catch (error) {
+        console.error('Analysis failed:', error);
+        setCurrentTask('Analysis failed - using fallback');
+        setProgress(100);
+        
+        // Fallback: create a simple segment
+        const fallbackSegments: EnrichedSegment[] = [{
+          id: 'segment-0',
+          startTime: 0,
+          endTime: videoRef.current?.duration || 60,
+          label: 'Full Video',
+          confidence: 1.0,
+        }];
+        
+        const emptyTranscript: CleanedTranscript = {
+          text: '',
+          segments: [],
+          words: [],
+          fillerWordsRemoved: 0,
+          originalText: '',
+        };
+        
+        setTimeout(() => {
+          onAnalysisComplete(fallbackSegments, [], [], emptyTranscript, []);
+        }, 1000);
+      }
+    };
+
+    runAnalysis();
+  }, [videoUrl, onAnalysisComplete]);
 
   return (
     <div className="flex items-center justify-center">
@@ -80,7 +175,7 @@ export default function ProcessingState({ onProcessingComplete }: ProcessingStat
                 Analyzing your film...
               </h1>
               <p className="text-white/60 text-lg h-7">
-                {AI_TASKS[currentTaskIndex]}
+                {currentTask}
               </p>
             </div>
 
@@ -112,21 +207,10 @@ export default function ProcessingState({ onProcessingComplete }: ProcessingStat
 
             {/* Progress Steps (visual indicators) */}
             <div className="space-y-3 max-w-md mx-auto">
-              {AI_TASKS.slice(0, 3).map((task, i) => (
-                <div
-                  key={i}
-                  className={`flex items-center space-x-3 text-sm transition-all duration-300 ${
-                    currentTaskIndex >= i ? 'text-white/70' : 'text-white/30'
-                  }`}
-                >
-                  <div
-                    className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                      currentTaskIndex >= i ? 'bg-white animate-pulse' : 'bg-white/30'
-                    }`}
-                  ></div>
-                  <span>{task}</span>
-                </div>
-              ))}
+              <div className="flex items-center space-x-3 text-sm text-white/70">
+                <div className="w-2 h-2 rounded-full bg-white animate-pulse"></div>
+                <span>Real AI analysis in progress...</span>
+              </div>
             </div>
           </div>
         </div>

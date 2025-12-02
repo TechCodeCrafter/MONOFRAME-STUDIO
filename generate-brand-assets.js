@@ -181,3 +181,4 @@ console.log('   3. Use online tool: https://svgtopng.com/');
 console.log('   4. Use Figma/Sketch to export as PNG');
 console.log('\n🎬 SVG files are production-ready and will work in most contexts!');
 
+

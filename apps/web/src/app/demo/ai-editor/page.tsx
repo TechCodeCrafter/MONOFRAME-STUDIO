@@ -4,6 +4,9 @@ import { useState } from 'react';
 import UploadArea from './components/UploadArea';
 import ProcessingState from './components/ProcessingState';
 import DemoResults from './components/DemoResults';
+import type { EnrichedSegment, DetectedCut } from '@/lib/videoAnalysis';
+import type { SegmentAudioIntelligence } from '@/lib/audioAnalysis';
+import type { CleanedTranscript, AlignedTranscript } from '@/lib/transcription';
 
 type DemoStep = 'upload' | 'processing' | 'results';
 
@@ -15,6 +18,11 @@ export default function AIDemoPage() {
   const [currentStep, setCurrentStep] = useState<DemoStep>('upload');
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string>('');
+  const [analyzedSegments, setAnalyzedSegments] = useState<EnrichedSegment[]>([]);
+  const [detectedCuts, setDetectedCuts] = useState<DetectedCut[]>([]);
+  const [audioAnalysis, setAudioAnalysis] = useState<SegmentAudioIntelligence[]>([]);
+  const [transcript, setTranscript] = useState<CleanedTranscript | null>(null);
+  const [alignedTranscript, setAlignedTranscript] = useState<AlignedTranscript[]>([]);
 
   const handleTransition = (nextStep: DemoStep) => {
     setIsTransitioning(true);
@@ -30,12 +38,32 @@ export default function AIDemoPage() {
     handleTransition('processing');
   };
 
+  const handleAnalysisComplete = (
+    segments: EnrichedSegment[],
+    cuts: DetectedCut[],
+    audio: SegmentAudioIntelligence[],
+    transcriptData: CleanedTranscript,
+    aligned: AlignedTranscript[]
+  ) => {
+    setAnalyzedSegments(segments);
+    setDetectedCuts(cuts);
+    setAudioAnalysis(audio);
+    setTranscript(transcriptData);
+    setAlignedTranscript(aligned);
+    handleTransition('results');
+  };
+
   const handleReset = () => {
     // Cleanup object URL
     if (videoUrl) {
       URL.revokeObjectURL(videoUrl);
       setVideoUrl('');
     }
+    setAnalyzedSegments([]);
+    setDetectedCuts([]);
+    setAudioAnalysis([]);
+    setTranscript(null);
+    setAlignedTranscript([]);
     handleTransition('upload');
   };
 
@@ -51,11 +79,22 @@ export default function AIDemoPage() {
         )}
         
         {currentStep === 'processing' && (
-          <ProcessingState onProcessingComplete={() => handleTransition('results')} />
+          <ProcessingState 
+            videoUrl={videoUrl}
+            onAnalysisComplete={handleAnalysisComplete}
+          />
         )}
         
-        {currentStep === 'results' && (
-          <DemoResults videoUrl={videoUrl} onReset={handleReset} />
+        {currentStep === 'results' && transcript && (
+          <DemoResults 
+            videoUrl={videoUrl}
+            analyzedSegments={analyzedSegments}
+            detectedCuts={detectedCuts}
+            audioAnalysis={audioAnalysis}
+            transcript={transcript}
+            alignedTranscript={alignedTranscript}
+            onReset={handleReset}
+          />
         )}
       </div>
     </div>
